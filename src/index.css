@@ -1,0 +1,95 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Paleta de Cores - Gradientes */
+  --gradient-primary: linear-gradient(135deg, #771324 0%, #19193a 100%);
+  --gradient-primary-dark: linear-gradient(135deg, #5f0f1d 0%, #14142e 100%);
+
+  /* Cores Primárias */
+  --color-primary-dark: #771324;
+  --color-primary-light: #924250;
+  --color-secondary-dark: #19193a;
+  --color-secondary-light: #474761;
+
+  /* Cores de Ação */
+  --color-accent: #0084ff;
+  --color-accent-dark: #0073e6;
+  --color-accent-hover: #0066cc;
+  --color-success: #10b981;
+  --color-success-dark: #059669;
+  --color-error: #dc2626;
+  --color-error-dark: #b91c1c;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+
+  /* Escala de Cinzas */
+  --color-white: #ffffff;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-150: #f1f5f9;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #1e293b;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #2563eb;
+}
+
+table {
+  border-spacing: 0;
+}
+
+input, button, textarea, select {
+  font-family: inherit;
+}

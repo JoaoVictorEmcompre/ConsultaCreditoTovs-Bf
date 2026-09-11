@@ -1,0 +1,21 @@
+services:
+  consulta-credito-totvs-bf:
+    build: .
+    image: consulta-credito-totvs-bf:v1
+    ports:
+      - "8084:4173"
+    env_file:
+      - ./.env
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.consulta-credito-totvs-bf.rule=Host(`felizacordarcolchoes.com.br`) && PathPrefix(`/consulta-credito-totvs-bf`)
+      - traefik.http.routers.consulta-credito-totvs-bf.entrypoints=websecure
+      - traefik.http.routers.consulta-credito-totvs-bf.tls.certresolver=le
+      - traefik.http.services.consulta-credito-totvs-bf.loadbalancer.server.port=4173
+    networks:
+      - web
+    restart: unless-stopped
+
+networks:
+  web:
+    external: true
