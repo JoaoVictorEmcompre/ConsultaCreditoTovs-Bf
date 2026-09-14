@@ -1,0 +1,232 @@
+.info-complementar-section {
+    margin-bottom: 1.5rem;
+}
+
+.info-complementar-saldo-card {
+    background: var(--color-white);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.info-complementar-saldo-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.info-complementar-saldo-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ede9fe;
+    color: #7c3aed;
+}
+
+.info-complementar-saldo-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.info-complementar-saldo-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.info-complementar-saldo-valor {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    font-variant-numeric: tabular-nums;
+}
+
+.info-complementar-saldo-filiais {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    margin-left: auto;
+    padding-left: 1rem;
+    border-left: 1px solid #f1f5f9;
+}
+
+.info-complementar-saldo-filial {
+    font-size: 0.78rem;
+    color: #64748b;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.info-complementar-saldo-filial strong {
+    color: #334155;
+    font-weight: 600;
+    margin-right: 0.3rem;
+}
+
+.info-complementar-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .info-complementar-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.info-complementar-bloco {
+    background: var(--color-white);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.info-complementar-bloco:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.info-complementar-bloco-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1.05rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.info-complementar-bloco-titulo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #475569;
+}
+
+.info-complementar-bloco-titulo h3 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.info-complementar-contagem {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+    background: #eef2f7;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+}
+
+.info-complementar-vazio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 1.75rem 1rem;
+    color: #cbd5e1;
+}
+
+.info-complementar-vazio p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.info-complementar-tabela-wrapper {
+    overflow-x: auto;
+}
+
+.info-complementar-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.79rem;
+}
+
+.info-complementar-tabela th {
+    text-align: center;
+    padding: 0.5rem 0.9rem;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.info-complementar-tabela td {
+    padding: 0.55rem 0.9rem;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.info-complementar-tabela tbody tr {
+    transition: background 0.15s;
+}
+
+.info-complementar-tabela tbody tr:hover {
+    background: #f8fafc;
+}
+
+.info-complementar-tabela tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.info-complementar-tabela code {
+    background: #f1f5f9;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: #1e3a5f;
+    font-weight: 500;
+}
+
+.info-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.info-pill-ok {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.info-pill-atencao {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.info-pill-neutral {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+@media (max-width: 640px) {
+    .info-complementar-saldo-filiais {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+    }
+}

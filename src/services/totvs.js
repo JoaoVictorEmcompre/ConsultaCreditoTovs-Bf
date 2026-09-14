@@ -352,3 +352,154 @@ export const searchDocuments = async (criterioCliente, branchCode) => {
         throw error;
     }
 };
+
+const formatDateISO = (date) => date.toISOString().slice(0, 10);
+
+const LOOKBACK_MESES_PADRAO = 24;
+
+// A busca por NF de venda e a de devolução não têm uma data "alvo" (são uma
+// visão geral do cliente, não de uma parcela específica) — olhar só os últimos
+// 6 meses a partir de hoje deixa de fora qualquer venda mais antiga. Usamos um
+// histórico maior (24 meses) como padrão.
+const janelaEmMeses = (meses) => {
+    const hoje = new Date();
+    const inicio = new Date(hoje);
+    inicio.setMonth(inicio.getMonth() - meses);
+
+    return {
+        startDate: formatDateISO(inicio),
+        endDate: formatDateISO(hoje),
+    };
+};
+
+// A API de notas fiscais só aceita até 6 meses por chamada, então pra cobrir um
+// histórico maior dividimos em janelas consecutivas de 6 meses.
+const janelasDeSeisMeses = (totalMeses) => {
+    const janelas = [];
+
+    for (let mesesAtras = 0; mesesAtras < totalMeses; mesesAtras += 6) {
+        const fim = new Date();
+        fim.setMonth(fim.getMonth() - mesesAtras);
+
+        const inicio = new Date();
+        inicio.setMonth(inicio.getMonth() - Math.min(mesesAtras + 6, totalMeses));
+
+        janelas.push({
+            startDate: formatDateISO(inicio),
+            endDate: formatDateISO(fim),
+        });
+    }
+
+    return janelas;
+};
+
+export const searchSalesInvoice = async (cpfCnpj, branchCode) => {
+    try {
+        const {startDate, endDate} = janelaEmMeses(LOOKBACK_MESES_PADRAO);
+        const response = await makeRequest(
+            "/api/totvsmoda/sales-order/v2/orders/search",
+            {
+                filter: {
+                    branchCodeList: Array.isArray(branchCode) ? branchCode : [branchCode],
+                    customerCpfCnpjList: [cpfCnpj],
+                    startOrderDate: startDate,
+                    endOrderDate: endDate,
+                },
+                expand: "invoices",
+                page: 1,
+                pageSize: 100,
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Search failed: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Erro ao buscar NF de venda/pedido:", error);
+        throw error;
+    }
+};
+
+export const searchReturnInvoices = async (cpfCnpj, branchCode) => {
+    const janelas = janelasDeSeisMeses(LOOKBACK_MESES_PADRAO);
+
+    const resultados = await Promise.allSettled(
+        janelas.map(async ({startDate, endDate}) => {
+            const response = await makeRequest(
+                "/api/totvsmoda/fiscal/v2/invoices/search",
+                {
+                    filter: {
+                        branchCodeList: Array.isArray(branchCode) ? branchCode : [branchCode],
+                        personCpfCnpjList: [cpfCnpj],
+                        operationType: "Input",
+                        startIssueDate: startDate,
+                        endIssueDate: endDate,
+                    },
+                    expand: "eletronic,referencedTaxInvoice",
+                    page: 1,
+                    pageSize: 100,
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Search failed: ${response.statusText}`);
+            }
+
+            return response.json();
+        })
+    );
+
+    // Uma janela falhando (ex.: instabilidade pontual) não derruba as outras —
+    // junta o que cada uma conseguiu trazer.
+    const items = resultados
+        .filter((resultado) => resultado.status === "fulfilled")
+        .flatMap((resultado) => resultado.value.items || []);
+
+    if (items.length === 0 && resultados.every((resultado) => resultado.status === "rejected")) {
+        console.error("Erro ao buscar NF de devolução:", resultados[0].reason);
+        throw resultados[0].reason;
+    }
+
+    return {items};
+};
+
+const searchDocumentsByType = async (cpfCnpj, branchCode, documentTypeList) => {
+    const response = await makeRequest(
+        "/api/totvsmoda/accounts-receivable/v2/documents/search",
+        {
+            filter: {
+                branchCodeList: Array.isArray(branchCode) ? branchCode : [branchCode],
+                customerCpfCnpjList: [cpfCnpj],
+                documentTypeList,
+            },
+            page: 1,
+            pageSize: 100,
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(`Search failed: ${response.statusText}`);
+    }
+
+    return await response.json();
+};
+
+export const searchCredevTitles = async (cpfCnpj, branchCode) => {
+    try {
+        return await searchDocumentsByType(cpfCnpj, branchCode, [20]);
+    } catch (error) {
+        console.error("Erro ao buscar títulos CREDEV:", error);
+        throw error;
+    }
+};
+
+export const searchDebitNotes = async (cpfCnpj, branchCode) => {
+    try {
+        return await searchDocumentsByType(cpfCnpj, branchCode, [6]);
+    } catch (error) {
+        console.error("Erro ao buscar notas de débito:", error);
+        throw error;
+    }
+};

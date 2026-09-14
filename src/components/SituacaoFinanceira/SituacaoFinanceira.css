@@ -229,6 +229,11 @@
 }
 
 .row-expand-content {
+    /* Trava dura: nada aqui dentro pode empurrar a tabela pra ficar mais larga
+       que a própria célula, não importa o que aconteça com o conteúdo. */
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
     padding: 1rem 1.2rem 1.2rem;
 }
 
@@ -266,7 +271,9 @@
 .validacao-card-cliente {
     display: flex;
     align-items: baseline;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.5rem;
+    min-width: 0;
 }
 
 .validacao-card-cliente-codigo {
@@ -281,16 +288,17 @@
 }
 
 .validacao-card-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.7rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .validacao-stat {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
-    min-width: 0;
+    flex: 1 1 130px;
+    min-width: 110px;
+    max-width: 220px;
 }
 
 .validacao-stat .table-status {
@@ -298,17 +306,6 @@
     white-space: normal;
 }
 
-@media (max-width: 900px) {
-    .validacao-card-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 520px) {
-    .validacao-card-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
 
 .validacao-stat-label {
     font-size: 0.65rem;
@@ -319,10 +316,12 @@
 }
 
 .validacao-stat-value {
+    min-width: 0;
     font-size: 0.85rem;
     font-weight: 600;
     color: #1e293b;
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
 }
 
 .row-expand-empty {
@@ -437,6 +436,7 @@
         opacity: 0;
         transform: translateY(-5px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);

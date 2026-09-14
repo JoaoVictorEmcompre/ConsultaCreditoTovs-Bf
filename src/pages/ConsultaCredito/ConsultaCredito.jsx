@@ -4,10 +4,30 @@ import Header from "../../components/Header/Header.jsx";
 import InformacoesCadastrais from "../../components/InformacoesCadastrais/InformacoesCadastrais.jsx";
 import SituacaoFinanceira from "../../components/SituacaoFinanceira/SituacaoFinanceira.jsx";
 import ResumoCredito from "../../components/ResumoCredito/ResumoCredito.jsx";
+import InformacoesComplementares from "../../components/InformacoesComplementares/InformacoesComplementares.jsx";
 import SimuladorNegociacao from "../../components/SimuladorNegociacao/SimuladorNegociacao.jsx";
 import AcordoCredito from "../../components/AcordoCredito/AcordoCredito.jsx";
-import {searchLegalEntities, searchIndividuals, searchPersonByCode, searchCustomerFinancialBalance, searchDocuments} from "../../services/totvs.js";
-import {mapLegalEntityToDadosCadastrais, mapFinancialBalanceToResumoCredito, mapDocumentsToDuplicatas} from "../../services/dataMapper.js";
+import {
+    searchLegalEntities,
+    searchIndividuals,
+    searchPersonByCode,
+    searchCustomerFinancialBalance,
+    searchDocuments,
+    searchSalesInvoice,
+    searchReturnInvoices,
+    searchCredevTitles,
+    searchDebitNotes,
+} from "../../services/totvs.js";
+import {
+    mapLegalEntityToDadosCadastrais,
+    mapFinancialBalanceToResumoCredito,
+    mapDocumentsToDuplicatas,
+    mapFinancialBalanceToSaldoCredev,
+    mapOrdersToNotasVenda,
+    mapFiscalInvoicesToNotasDevolucao,
+    mapDocumentsToCredevTitulos,
+    mapDocumentsToNotasDebito,
+} from "../../services/dataMapper.js";
 import {pegarIP} from "../../services/pegarIP.js";
 import {isValidPermanentLogin, updateLastAccessDate, clearPermanentLogin} from "../../services/authService.js";
 import {DEFAULT_EXTERNAL_BRANCH_CODE} from "../../constants/branches.js";
@@ -57,6 +77,13 @@ function ConsultaCredito() {
     const [currentDadosCadastrais, setCurrentDadosCadastrais] = useState(null);
     const [currentDuplicatas, setCurrentDuplicatas] = useState([]);
     const [currentResumoCredito, setCurrentResumoCredito] = useState(null);
+    const [currentInfoComplementar, setCurrentInfoComplementar] = useState({
+        saldoCredev: null,
+        notasVenda: [],
+        notasDevolucao: [],
+        titulosCredev: [],
+        notasDebito: [],
+    });
     const [error, setError] = useState(null);
     const [searching, setSearching] = useState(false);
     const [validandoAcesso, setValidandoAcesso] = useState(true);
@@ -78,6 +105,13 @@ function ConsultaCredito() {
                 setCurrentDadosCadastrais(null);
                 setCurrentResumoCredito(null);
                 setCurrentDuplicatas([]);
+                setCurrentInfoComplementar({
+                    saldoCredev: null,
+                    notasVenda: [],
+                    notasDevolucao: [],
+                    titulosCredev: [],
+                    notasDebito: [],
+                });
                 return;
             }
 
@@ -117,11 +151,63 @@ function ConsultaCredito() {
             } else {
                 setCurrentDuplicatas([]);
             }
+
+            // Saldo CREDEV não é uma busca nova — vem do mesmo financialData acima,
+            // que já pede isRefundCredit:true. As outras 4 são buscas à parte,
+            // isoladas num allSettled pra uma falha aqui não derrubar a tela toda.
+            const saldoCredev = financialData.items?.length > 0
+                ? mapFinancialBalanceToSaldoCredev(financialData)
+                : null;
+
+            const cpfCnpjComplementar = criterio.tipo !== "codigo"
+                ? criterio.valor
+                : (legalEntityData.items?.[0]?.cnpj || legalEntityData.items?.[0]?.cpf || null);
+
+            if (!cpfCnpjComplementar) {
+                setCurrentInfoComplementar({
+                    saldoCredev,
+                    notasVenda: [],
+                    notasDevolucao: [],
+                    titulosCredev: [],
+                    notasDebito: [],
+                });
+            } else {
+                const [notasVendaResult, notasDevolucaoResult, titulosCredevResult, notasDebitoResult] =
+                    await Promise.allSettled([
+                        searchSalesInvoice(cpfCnpjComplementar, branchCode),
+                        searchReturnInvoices(cpfCnpjComplementar, branchCode),
+                        searchCredevTitles(cpfCnpjComplementar, branchCode),
+                        searchDebitNotes(cpfCnpjComplementar, branchCode),
+                    ]);
+
+                setCurrentInfoComplementar({
+                    saldoCredev,
+                    notasVenda: notasVendaResult.status === "fulfilled"
+                        ? mapOrdersToNotasVenda(notasVendaResult.value)
+                        : [],
+                    notasDevolucao: notasDevolucaoResult.status === "fulfilled"
+                        ? mapFiscalInvoicesToNotasDevolucao(notasDevolucaoResult.value)
+                        : [],
+                    titulosCredev: titulosCredevResult.status === "fulfilled"
+                        ? mapDocumentsToCredevTitulos(titulosCredevResult.value)
+                        : [],
+                    notasDebito: notasDebitoResult.status === "fulfilled"
+                        ? mapDocumentsToNotasDebito(notasDebitoResult.value)
+                        : [],
+                });
+            }
         } catch (err) {
             setError(err.message || "Erro ao buscar dados. Verifique o CNPJ e tente novamente.");
             setCurrentDadosCadastrais(null);
             setCurrentResumoCredito(null);
             setCurrentDuplicatas([]);
+            setCurrentInfoComplementar({
+                saldoCredev: null,
+                notasVenda: [],
+                notasDevolucao: [],
+                titulosCredev: [],
+                notasDebito: [],
+            });
         } finally {
             setSearching(false);
         }
@@ -246,6 +332,7 @@ function ConsultaCredito() {
                     duplicatas={currentDuplicatas}
                     mostrarFilial={Array.isArray(branchCodeAtual) && branchCodeAtual.length > 1}
                 />
+                <InformacoesComplementares info={currentInfoComplementar}/>
             </main>
 
             <SimuladorNegociacao

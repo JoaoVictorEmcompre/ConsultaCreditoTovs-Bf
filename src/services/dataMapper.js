@@ -347,6 +347,94 @@ export const mapDocumentsToDuplicatas = (documents) => {
     });
 };
 
+// Não busca nada novo — reaproveita o mesmo financialData já buscado pro Resumo
+// de Crédito, que já pede isRefundCredit:true e por isso já traz esse valor.
+export const mapFinancialBalanceToSaldoCredev = (financialBalance) => {
+    if (!financialBalance || !financialBalance.items?.[0]) return null;
+
+    const values = financialBalance.items[0].values || [];
+
+    const porFilial = values
+        .filter((v) => v.branchCode != null)
+        .map((v) => ({
+            filial: getBranchLabel(v.branchCode),
+            saldo: v.refundCreditValue || 0,
+        }));
+
+    const total = values.reduce((soma, v) => soma + (v.refundCreditValue || 0), 0);
+
+    return {total, porFilial};
+};
+
+export const mapOrdersToNotasVenda = (orders) => {
+    if (!orders || !orders.items) return [];
+
+    return orders.items.map((order) => {
+        const invoices = order.invoices || [];
+        const primeiraInvoice = invoices[0] || {};
+
+        return {
+            id: `${order.orderCode ?? ""}`,
+            pedido: order.orderCode?.toString() || "-",
+            codigoMarketplace: order.customerOrderCode || order.orderId || "-",
+            notaFiscal: primeiraInvoice.code?.toString() || "-",
+            representante: order.representativeName || "-",
+            data: order.orderDate ? new Date(order.orderDate).toLocaleDateString("pt-BR") : "-",
+        };
+    });
+};
+
+export const mapFiscalInvoicesToNotasDevolucao = (invoices) => {
+    if (!invoices || !invoices.items) return [];
+
+    return invoices.items.map((nota) => ({
+        id: `${nota.invoiceCode ?? nota.transactionCode ?? ""}`,
+        notaFiscal: nota.invoiceCode?.toString() || "-",
+        operacao: nota.operatioName || "-",
+        valor: nota.totalValue || 0,
+        emissao: nota.issueDate ? new Date(nota.issueDate).toLocaleDateString("pt-BR") : "-",
+        statusSefaz: nota.eletronic?.electronicInvoiceStatus || "-",
+    }));
+};
+
+const descreverBaixaCredev = (dischargeType) => {
+    switch (dischargeType) {
+        case 0:
+            return "Crédito parado";
+        case 31:
+            return "Baixa cartão com CREDEV";
+        default:
+            return dischargeType != null ? "Baixado" : "-";
+    }
+};
+
+export const mapDocumentsToCredevTitulos = (documents) => {
+    if (!documents || !documents.items) return [];
+
+    return documents.items.map((doc) => ({
+        id: `${doc.receivableCode}-${doc.installmentCode}`,
+        fatura: doc.receivableCode?.toString() || "-",
+        valor: doc.installmentValue || 0,
+        dataEmissao: doc.issueDate ? new Date(doc.issueDate).toLocaleDateString("pt-BR") : "-",
+        statusBaixa: descreverBaixaCredev(doc.dischargeType),
+        filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
+    }));
+};
+
+export const mapDocumentsToNotasDebito = (documents) => {
+    if (!documents || !documents.items) return [];
+
+    return documents.items.map((doc) => ({
+        id: `${doc.receivableCode}-${doc.installmentCode}`,
+        fatura: doc.receivableCode?.toString() || "-",
+        valor: doc.installmentValue || 0,
+        dataEmissao: doc.issueDate ? new Date(doc.issueDate).toLocaleDateString("pt-BR") : "-",
+        dataVencimento: doc.expiredDate ? new Date(doc.expiredDate).toLocaleDateString("pt-BR") : "-",
+        diasAtraso: diasAtrasoDocumento(doc),
+        filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
+    }));
+};
+
 export const buildInitialPartes = (dadosCadastrais = {}) => ({
     notificado: {
         nome: dadosCadastrais?.razaoSocial || "",
