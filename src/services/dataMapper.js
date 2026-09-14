@@ -58,6 +58,27 @@ const formatDate = (dateString) => {
     }
 };
 
+const diffEmDias = (dataMaisRecente, dataMaisAntiga) => {
+    const recente = new Date(dataMaisRecente);
+    recente.setHours(0, 0, 0, 0);
+
+    const antiga = new Date(dataMaisAntiga);
+    antiga.setHours(0, 0, 0, 0);
+
+    return Math.floor((recente - antiga) / 86400000);
+};
+
+// O atraso de um documento nunca vem do "calculatedValues.daysLate" da API — esse
+// campo reflete o atraso até HOJE mesmo pra títulos já pagos, e sem zerar o horário
+// ele diverge por 1 dia dependendo do fuso/hora em que a conta é feita. Calculando
+// sempre a partir das datas reais, o Resumo de Crédito e a tabela nunca destoam.
+const diasAtrasoDocumento = (doc) => {
+    if (doc.paymentDate) {
+        return Math.max(diffEmDias(doc.paymentDate, doc.expiredDate), 0);
+    }
+    return Math.max(diffEmDias(new Date(), doc.expiredDate), 0);
+};
+
 const sanitizeCep = (cep) => {
     if (!cep) return "";
     return String(cep).replace(/\D/g, "");
@@ -152,74 +173,34 @@ export const mapLegalEntityToDadosCadastrais = async (legalEntity) => {
 const calculateAverageDelayLast12Months = (documents) => {
     if (!documents || documents.length === 0) return 0;
 
-    const now = new Date();
-    const last12MonthsDate = new Date(
-        now.getFullYear() - 1,
-        now.getMonth(),
-        now.getDate()
-    );
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const umAnoAtras = new Date(hoje.getFullYear() - 1, hoje.getMonth(), hoje.getDate());
 
     const relevantDocuments = documents.filter((doc) => {
-        const expiredDate = new Date(doc.expiredDate);
+        const vencimento = new Date(doc.expiredDate);
+        vencimento.setHours(0, 0, 0, 0);
 
-        if (expiredDate < last12MonthsDate) return false;
+        if (vencimento < umAnoAtras) return false;
 
-        const isPaidLate =
-            doc.paymentDate !== null && (doc.calculatedValues?.daysLate || 0) > 0;
-
-        const isUnpaidAndOverdue =
-            doc.paymentDate === null && expiredDate < now;
-
-        return isPaidLate || isUnpaidAndOverdue;
+        return diasAtrasoDocumento(doc) > 0;
     });
 
     if (relevantDocuments.length === 0) return 0;
 
-    const totalDaysLate = relevantDocuments.reduce((sum, doc) => {
-        if (doc.paymentDate) {
-            return sum + (doc.calculatedValues?.daysLate || 0);
-        }
+    const totalDiasAtraso = relevantDocuments.reduce(
+        (soma, doc) => soma + diasAtrasoDocumento(doc),
+        0
+    );
 
-        const expiredDate = new Date(doc.expiredDate);
-        return sum + Math.floor((now - expiredDate) / 86400000);
-    }, 0);
-
-    return Math.round(totalDaysLate / relevantDocuments.length);
+    return Math.round(totalDiasAtraso / relevantDocuments.length);
 };
 
 const calculateMaxDelay = (documents) => {
     if (!documents || documents.length === 0) return 0;
 
-    const now = new Date();
-
-    const delays = documents
-        .filter((doc) => {
-            const expiredDate = new Date(doc.expiredDate);
-
-            if (doc.paymentDate) {
-                const daysLate = doc.calculatedValues?.daysLate;
-
-                if (daysLate != null) return daysLate > 0;
-
-                return new Date(doc.paymentDate) > expiredDate;
-            }
-
-            return expiredDate < now;
-        })
-        .map((doc) => {
-            const expiredDate = new Date(doc.expiredDate);
-
-            if (doc.paymentDate) {
-                const daysLate = doc.calculatedValues?.daysLate;
-                if (daysLate != null) return daysLate;
-
-                return Math.floor(
-                    (new Date(doc.paymentDate) - expiredDate) / 86400000
-                );
-            }
-
-            return Math.floor((now - expiredDate) / 86400000);
-        });
+    const delays = documents.map(diasAtrasoDocumento).filter((dias) => dias > 0);
 
     return delays.length > 0 ? Math.max(...delays) : 0;
 };
@@ -227,18 +208,30 @@ const calculateMaxDelay = (documents) => {
 const countOverdueTitles = (documents) => {
     if (!documents || documents.length === 0) return 0;
 
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
     return documents.filter((doc) => {
-        const expiredDate = new Date(doc.expiredDate);
-        return doc.paymentDate === null && expiredDate < new Date();
+        if (doc.paymentDate) return false;
+
+        const vencimento = new Date(doc.expiredDate);
+        vencimento.setHours(0, 0, 0, 0);
+        return vencimento < hoje;
     }).length;
 };
 
 const countDueTitles = (documents) => {
     if (!documents || documents.length === 0) return 0;
 
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
     return documents.filter((doc) => {
-        const expiredDate = new Date(doc.expiredDate);
-        return doc.paymentDate === null && expiredDate >= new Date();
+        if (doc.paymentDate) return false;
+
+        const vencimento = new Date(doc.expiredDate);
+        vencimento.setHours(0, 0, 0, 0);
+        return vencimento >= hoje;
     }).length;
 };
 
@@ -300,16 +293,6 @@ export const mapFinancialBalanceToResumoCredito = (financialBalance, documents) 
     };
 };
 
-const diffEmDias = (dataMaisRecente, dataMaisAntiga) => {
-    const recente = new Date(dataMaisRecente);
-    recente.setHours(0, 0, 0, 0);
-
-    const antiga = new Date(dataMaisAntiga);
-    antiga.setHours(0, 0, 0, 0);
-
-    return Math.floor((recente - antiga) / 86400000);
-};
-
 export const mapDocumentsToDuplicatas = (documents) => {
     if (!documents || !documents.items) return [];
 
@@ -320,24 +303,13 @@ export const mapDocumentsToDuplicatas = (documents) => {
 
     return documents.items.map((doc) => {
         const totalParcelas = totalParcelasPorDuplicata[doc.receivableCode] || 1;
-
-        // O atraso de um título pago é sempre a diferença entre pagamento e vencimento,
-        // nunca o "daysLate" da API — esse campo reflete o atraso até HOJE, então um
-        // título pago em dia há muito tempo apareceria com centenas de dias de atraso.
-        const diasAtrasoPagamento = doc.paymentDate
-            ? Math.max(diffEmDias(doc.paymentDate, doc.expiredDate), 0)
-            : 0;
-
-        const diasAtrasoAtual = (doc.calculatedValues?.daysLate || 0) > 0
-            ? doc.calculatedValues.daysLate
-            : Math.max(diffEmDias(new Date(), doc.expiredDate), 0);
-
+        const diasAtraso = diasAtrasoDocumento(doc);
         const pagoParcialmente = Boolean(doc.paymentDate) && (doc.paidValue || 0) < (doc.installmentValue || 0);
 
         const statusPagamento = (() => {
             if (doc.paymentDate) {
                 if (pagoParcialmente) return "Pago Parcialmente";
-                return diasAtrasoPagamento > 0 ? "Pago com Atraso" : "Pago";
+                return diasAtraso > 0 ? "Pago com Atraso" : "Pago";
             }
 
             const expired = new Date(doc.expiredDate);
@@ -366,7 +338,7 @@ export const mapDocumentsToDuplicatas = (documents) => {
             dataPagamento: doc.paymentDate
                 ? new Date(doc.paymentDate).toLocaleDateString("pt-BR")
                 : null,
-            diasAtraso: doc.paymentDate ? diasAtrasoPagamento : diasAtrasoAtual,
+            diasAtraso,
             statusPagamento,
             conta: doc.bearerName || "",
             filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",

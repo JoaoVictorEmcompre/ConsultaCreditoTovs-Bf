@@ -1,6 +1,6 @@
-import {useState, useMemo, useEffect, useRef, Fragment} from "react";
+import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import "./SituacaoFinanceira.css";
-import {exportToCSV, exportToXLSX, exportToXLS, exportToPDF} from "../../utils/exportUtils.js";
+import { exportToCSV, exportToXLSX, exportToXLS, exportToPDF } from "../../utils/exportUtils.js";
 import {
     Check,
     Clock,
@@ -90,44 +90,44 @@ function getStatusIcon(status) {
     switch (status) {
         case "Pago":
             return (
-                <Check size={16}/>
+                <Check size={16} />
             );
         case "A Vencer":
             return (
-                <Clock size={16}/>
+                <Clock size={16} />
             );
         case "Vencido":
             return (
-                <XCircle size={16}/>
+                <XCircle size={16} />
             );
         case "Pago com Atraso":
             return (
-                <AlertTriangle size={16}/>
+                <AlertTriangle size={16} />
             );
         case "Pago Parcialmente":
             return (
-                <StopCircle size={16}/>
+                <StopCircle size={16} />
             );
         case "Vence Hoje":
             return (
-                <Clock size={16}/>
+                <Clock size={16} />
             );
         default:
             return null;
     }
 }
 
-function SortIcon({field, sortField, sortOrder}) {
+function SortIcon({ field, sortField, sortOrder }) {
     if (field !== sortField) {
-        return <ArrowUpDown size={13} className="sort-icon"/>;
+        return <ArrowUpDown size={13} className="sort-icon" />;
     }
     return sortOrder === "asc"
-        ? <ArrowUp size={13} className="sort-icon sort-icon-active"/>
-        : <ArrowDown size={13} className="sort-icon sort-icon-active"/>;
+        ? <ArrowUp size={13} className="sort-icon sort-icon-active" />
+        : <ArrowDown size={13} className="sort-icon sort-icon-active" />;
 }
 
-function SituacaoFinanceira({duplicatas, mostrarFilial = false}) {
-    const [sort, setSort] = useState({field: "dataVencimento", order: "asc"});
+function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
+    const [sort, setSort] = useState({ field: "dataVencimento", order: "asc" });
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStatuses, setSelectedStatuses] = useState([]);
     const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
@@ -275,15 +275,15 @@ function SituacaoFinanceira({duplicatas, mostrarFilial = false}) {
 
     const handleSortClick = (field) => {
         if (sort.field === field) {
-            setSort({field, order: sort.order === "asc" ? "desc" : "asc"});
+            setSort({ field, order: sort.order === "asc" ? "desc" : "asc" });
         } else {
-            setSort({field, order: "asc"});
+            setSort({ field, order: "asc" });
         }
     };
 
     const handleExport = async (format) => {
         const dataToExport = sorted.map(item => ({
-            ...(mostrarFilial && {filial: item.filial}),
+            ...(mostrarFilial && { filial: item.filial }),
             duplicata: item.duplicata,
             fatura: item.fatura,
             parcela: item.parcela,
@@ -325,7 +325,7 @@ function SituacaoFinanceira({duplicatas, mostrarFilial = false}) {
         <section className="financeira-section">
             <div className="section-header">
                 <div className="section-title-group">
-                    <DollarSign size={20}/>
+                    <DollarSign size={20} />
                     <h2>Situação Financeira</h2>
                 </div>
                 <span className="record-count">{sorted.length} registros</span>
@@ -346,7 +346,7 @@ function SituacaoFinanceira({duplicatas, mostrarFilial = false}) {
                         onClick={handleStatusFilterToggle}
                     >
                         <span>Status {selectedStatuses.length > 0 ? `(${selectedStatuses.length})` : "(Todos)"}</span>
-                        <ChevronDown size={14} className={`filter-chevron ${isStatusFilterOpen ? "is-open" : ""}`}/>
+                        <ChevronDown size={14} className={`filter-chevron ${isStatusFilterOpen ? "is-open" : ""}`} />
                     </button>
                     {isStatusFilterOpen && (
                         <div className="filter-status-dropdown">
@@ -369,9 +369,9 @@ function SituacaoFinanceira({duplicatas, mostrarFilial = false}) {
                         className="filter-export-button"
                         onClick={handleExportToggle}
                     >
-                        <Download size={15}/>
+                        <Download size={15} />
                         <span>Exportar</span>
-                        <ChevronDown size={14} className={`filter-chevron ${isExportOpen ? "is-open" : ""}`}/>
+                        <ChevronDown size={14} className={`filter-chevron ${isExportOpen ? "is-open" : ""}`} />
                     </button>
                     {isExportOpen && (
                         <div className="filter-export-dropdown">
@@ -409,183 +409,183 @@ function SituacaoFinanceira({duplicatas, mostrarFilial = false}) {
                 <div className="table-wrapper">
                     <table className="financeira-table">
                         <thead>
-                        <tr>
-                            <th className="col-expand"></th>
-                            {mostrarFilial && (
-                                <th className="sortable" onClick={() => handleSortClick("filial")}>
-                                    Filial <SortIcon field="filial" sortField={sort.field} sortOrder={sort.order}/>
+                            <tr>
+                                <th className="col-expand"></th>
+                                {mostrarFilial && (
+                                    <th className="sortable" onClick={() => handleSortClick("filial")}>
+                                        Filial <SortIcon field="filial" sortField={sort.field} sortOrder={sort.order} />
+                                    </th>
+                                )}
+                                <th className="col-center sortable" onClick={() => handleSortClick("duplicata")}>
+                                    Duplicata <SortIcon field="duplicata" sortField={sort.field} sortOrder={sort.order} />
                                 </th>
-                            )}
-                            <th className="col-center sortable" onClick={() => handleSortClick("duplicata")}>
-                                Duplicata <SortIcon field="duplicata" sortField={sort.field} sortOrder={sort.order}/>
-                            </th>
-                            <th className="col-center sortable" onClick={() => handleSortClick("fatura")}>
-                                Fatura <SortIcon field="fatura" sortField={sort.field} sortOrder={sort.order}/>
-                            </th>
-                            <th className="col-center sortable" onClick={() => handleSortClick("parcela")}>
-                                Parcela <SortIcon field="parcela" sortField={sort.field} sortOrder={sort.order}/>
-                            </th>
-                            <th className="col-center sortable" onClick={() => handleSortClick("valor")}>
-                                Valor Parcela <SortIcon field="valor" sortField={sort.field} sortOrder={sort.order}/>
-                            </th>
-                            <th className="col-center sortable" onClick={() => handleSortClick("valorPag")}>
-                                Valor Pago <SortIcon field="valorPag" sortField={sort.field} sortOrder={sort.order}/>
-                            </th>
-                            <th className="col-center sortable" onClick={() => handleSortClick("dataEmissao")}>
-                                Emissão <SortIcon field="dataEmissao" sortField={sort.field} sortOrder={sort.order}/>
-                            </th>
-                            <th className="col-center sortable" onClick={() => handleSortClick("dataVencimento")}>
-                                Vencimento <SortIcon field="dataVencimento" sortField={sort.field}
-                                                     sortOrder={sort.order}/>
-                            </th>
-                            <th className="col-center sortable" onClick={() => handleSortClick("dataPagamento")}>
-                                Pagamento <SortIcon field="dataPagamento" sortField={sort.field}
-                                                    sortOrder={sort.order}/>
-                            </th>
-                            <th className="col-center sortable" onClick={() => handleSortClick("diasAtraso")}>
-                                Dias Atraso <SortIcon field="diasAtraso" sortField={sort.field} sortOrder={sort.order}/>
-                            </th>
-                            <th className="col-center sortable" onClick={() => handleSortClick("statusPagamento")}>
-                                Status <SortIcon field="statusPagamento" sortField={sort.field} sortOrder={sort.order}/>
-                            </th>
-                            <th className="sortable" onClick={() => handleSortClick("conta")}>
-                                Conta <SortIcon field="conta" sortField={sort.field} sortOrder={sort.order}/>
-                            </th>
-                        </tr>
+                                <th className="col-center sortable" onClick={() => handleSortClick("fatura")}>
+                                    Fatura <SortIcon field="fatura" sortField={sort.field} sortOrder={sort.order} />
+                                </th>
+                                <th className="col-center sortable" onClick={() => handleSortClick("parcela")}>
+                                    Parcela <SortIcon field="parcela" sortField={sort.field} sortOrder={sort.order} />
+                                </th>
+                                <th className="col-center sortable" onClick={() => handleSortClick("valor")}>
+                                    Valor Parcela <SortIcon field="valor" sortField={sort.field} sortOrder={sort.order} />
+                                </th>
+                                <th className="col-center sortable" onClick={() => handleSortClick("valorPag")}>
+                                    Valor Pago <SortIcon field="valorPag" sortField={sort.field} sortOrder={sort.order} />
+                                </th>
+                                <th className="col-center sortable" onClick={() => handleSortClick("dataEmissao")}>
+                                    Emissão <SortIcon field="dataEmissao" sortField={sort.field} sortOrder={sort.order} />
+                                </th>
+                                <th className="col-center sortable" onClick={() => handleSortClick("dataVencimento")}>
+                                    Vencimento <SortIcon field="dataVencimento" sortField={sort.field}
+                                        sortOrder={sort.order} />
+                                </th>
+                                <th className="col-center sortable" onClick={() => handleSortClick("dataPagamento")}>
+                                    Pagamento <SortIcon field="dataPagamento" sortField={sort.field}
+                                        sortOrder={sort.order} />
+                                </th>
+                                <th className="col-center sortable" onClick={() => handleSortClick("diasAtraso")}>
+                                    Dias Atraso <SortIcon field="diasAtraso" sortField={sort.field} sortOrder={sort.order} />
+                                </th>
+                                <th className="col-center sortable" onClick={() => handleSortClick("statusPagamento")}>
+                                    Status <SortIcon field="statusPagamento" sortField={sort.field} sortOrder={sort.order} />
+                                </th>
+                                <th className="sortable" onClick={() => handleSortClick("conta")}>
+                                    Conta <SortIcon field="conta" sortField={sort.field} sortOrder={sort.order} />
+                                </th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {sorted.map((dup) => {
-                            const podeExpandir = Boolean(dup.validacaoFilial6);
-                            const expandida = linhasExpandidas.has(dup.id);
-                            const totalColunas = 11 + (mostrarFilial ? 1 : 0) + 1;
+                            {sorted.map((dup) => {
+                                const podeExpandir = Boolean(dup.validacaoFilial6);
+                                const expandida = linhasExpandidas.has(dup.id);
+                                const totalColunas = 11 + (mostrarFilial ? 1 : 0) + 1;
 
-                            return (
-                                <Fragment key={dup.id}>
-                                    <tr className={dup.statusPagamento === "Vencido" ? "row-vencido" : ""}>
-                                        <td className="col-expand">
-                                            {podeExpandir && (
-                                                <button
-                                                    type="button"
-                                                    className="row-expand-button"
-                                                    onClick={() => toggleExpandirLinha(dup.id)}
-                                                    aria-label="Ver dados da validação da filial 6"
-                                                >
-                                                    <ChevronDown
-                                                        size={15}
-                                                        className={`row-expand-icon ${expandida ? "is-open" : ""}`}
-                                                    />
-                                                </button>
+                                return (
+                                    <Fragment key={dup.id}>
+                                        <tr className={dup.statusPagamento === "Vencido" ? "row-vencido" : ""}>
+                                            <td className="col-expand">
+                                                {podeExpandir && (
+                                                    <button
+                                                        type="button"
+                                                        className="row-expand-button"
+                                                        onClick={() => toggleExpandirLinha(dup.id)}
+                                                        aria-label="Ver dados da validação da filial 6"
+                                                    >
+                                                        <ChevronDown
+                                                            size={15}
+                                                            className={`row-expand-icon ${expandida ? "is-open" : ""}`}
+                                                        />
+                                                    </button>
+                                                )}
+                                            </td>
+                                            {mostrarFilial && (
+                                                <td className="col-filial">{dup.filial}</td>
                                             )}
-                                        </td>
-                                        {mostrarFilial && (
-                                            <td className="col-filial">{dup.filial}</td>
-                                        )}
-                                        <td className="col-center col-duplicata">
-                                            <code>{dup.duplicata}</code>
-                                        </td>
-                                        <td className="col-center col-fatura">
-                                            <code>{dup.fatura}</code>
-                                        </td>
-                                        <td className="col-center">{dup.parcela}</td>
-                                        <td className="col-center col-valor">{formatCurrency(dup.valor)}</td>
-                                        <td className="col-center col-valor">{formatCurrency(dup.valorPag)}</td>
-                                        <td className="col-center">{dup.dataEmissao}</td>
-                                        <td className="col-center">{dup.dataVencimento}</td>
-                                        <td className="col-center">{dup.dataPagamento || "---"}</td>
-                                        <td className="col-center">
-                                            {dup.diasAtraso > 0 ? (
-                                                <span className="dias-atraso">{dup.diasAtraso}d</span>
-                                            ) : (
-                                                <span className="dias-ok">-</span>
-                                            )}
-                                        </td>
-                                        <td className="col-center">
+                                            <td className="col-center col-duplicata">
+                                                <code>{dup.duplicata}</code>
+                                            </td>
+                                            <td className="col-center col-fatura">
+                                                <code>{dup.fatura}</code>
+                                            </td>
+                                            <td className="col-center">{dup.parcela}</td>
+                                            <td className="col-center col-valor">{formatCurrency(dup.valor)}</td>
+                                            <td className="col-center col-valor">{formatCurrency(dup.valorPag)}</td>
+                                            <td className="col-center">{dup.dataEmissao}</td>
+                                            <td className="col-center">{dup.dataVencimento}</td>
+                                            <td className="col-center">{dup.dataPagamento || "---"}</td>
+                                            <td className="col-center">
+                                                {dup.diasAtraso > 0 ? (
+                                                    <span className="dias-atraso">{dup.diasAtraso}d</span>
+                                                ) : (
+                                                    <span className="dias-ok">-</span>
+                                                )}
+                                            </td>
+                                            <td className="col-center">
                                                 <span className={`table-status ${getStatusClass(dup.statusPagamento)}`}>
                                                     {getStatusIcon(dup.statusPagamento)}
                                                     {dup.statusPagamento}
                                                 </span>
-                                        </td>
-                                        <td className="col-conta">{dup.conta}</td>
-                                    </tr>
-                                    {expandida && (
-                                        <tr className="row-expand-detail">
-                                            <td colSpan={totalColunas}>
-                                                <div className="row-expand-content">
-                                                    <span className="row-expand-title">
-                                                        Consulta pela fatura {dup.fatura} · emissão {dup.dataEmissao}
-                                                    </span>
-                                                    {dup.validacaoFilial6?.items?.length > 0 ? (
-                                                        <div className="row-expand-cards">
-                                                            {dup.validacaoFilial6.items.map((item, index) => {
-                                                                const statusItem = getStatusItemBruto(item);
-
-                                                                return (
-                                                                    <div
-                                                                        key={`${item.customerCode}-${item.installmentCode}-${index}`}
-                                                                        className="validacao-card"
-                                                                    >
-                                                                        <div className="validacao-card-header">
-                                                                            <div className="validacao-card-cliente">
-                                                                                <span className="validacao-card-cliente-codigo">
-                                                                                    Cliente {item.customerCode}
-                                                                                </span>
-                                                                                {item.customerCpfCnpj && (
-                                                                                    <span className="validacao-card-cliente-doc">
-                                                                                        {item.customerCpfCnpj}
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div className="validacao-card-grid">
-                                                                            <div className="validacao-stat">
-                                                                                <span className="validacao-stat-label">Valor Parcela</span>
-                                                                                <span className="validacao-stat-value">{formatCurrency(item.installmentValue)}</span>
-                                                                            </div>
-                                                                            <div className="validacao-stat">
-                                                                                <span className="validacao-stat-label">Valor Pago</span>
-                                                                                <span className="validacao-stat-value">{formatCurrency(item.paidValue)}</span>
-                                                                            </div>
-                                                                            <div className="validacao-stat">
-                                                                                <span className="validacao-stat-label">Emissão</span>
-                                                                                <span className="validacao-stat-value">{formatDataBruta(item.issueDate)}</span>
-                                                                            </div>
-                                                                            <div className="validacao-stat">
-                                                                                <span className="validacao-stat-label">Vencimento</span>
-                                                                                <span className="validacao-stat-value">{formatDataBruta(item.expiredDate)}</span>
-                                                                            </div>
-                                                                            <div className="validacao-stat">
-                                                                                <span className="validacao-stat-label">Pagamento</span>
-                                                                                <span className="validacao-stat-value">{formatDataBruta(item.paymentDate)}</span>
-                                                                            </div>
-                                                                            <div className="validacao-stat">
-                                                                                <span className="validacao-stat-label">Status</span>
-                                                                                <span className={`table-status ${getStatusClass(statusItem)}`}>
-                                                                                    {getStatusIcon(statusItem)}
-                                                                                    {statusItem}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="validacao-stat">
-                                                                                <span className="validacao-stat-label">Conta</span>
-                                                                                <span className="validacao-stat-value">{item.bearerName || "---"}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ) : (
-                                                        <p className="row-expand-empty">
-                                                            Nenhum retorno pra essa fatura nessa data.
-                                                        </p>
-                                                    )}
-                                                </div>
                                             </td>
+                                            <td className="col-conta">{dup.conta}</td>
                                         </tr>
-                                    )}
-                                </Fragment>
-                            );
-                        })}
+                                        {expandida && (
+                                            <tr className="row-expand-detail">
+                                                <td colSpan={totalColunas}>
+                                                    <div className="row-expand-content">
+                                                        <span className="row-expand-title">
+                                                            Consulta pela fatura {dup.fatura} · emissão {dup.dataEmissao}
+                                                        </span>
+                                                        {dup.validacaoFilial6?.items?.length > 0 ? (
+                                                            <div className="row-expand-cards">
+                                                                {dup.validacaoFilial6.items.map((item, index) => {
+                                                                    const statusItem = getStatusItemBruto(item);
+
+                                                                    return (
+                                                                        <div
+                                                                            key={`${item.customerCode}-${item.installmentCode}-${index}`}
+                                                                            className="validacao-card"
+                                                                        >
+                                                                            <div className="validacao-card-header">
+                                                                                <div className="validacao-card-cliente">
+                                                                                    <span className="validacao-card-cliente-codigo">
+                                                                                        Cliente {item.customerCode}
+                                                                                    </span>
+                                                                                    {item.customerCpfCnpj && (
+                                                                                        <span className="validacao-card-cliente-doc">
+                                                                                            {item.customerCpfCnpj}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="validacao-card-grid">
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Valor Parcela</span>
+                                                                                    <span className="validacao-stat-value">{formatCurrency(item.installmentValue)}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Valor Pago</span>
+                                                                                    <span className="validacao-stat-value">{formatCurrency(item.paidValue)}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Emissão</span>
+                                                                                    <span className="validacao-stat-value">{formatDataBruta(item.issueDate)}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Vencimento</span>
+                                                                                    <span className="validacao-stat-value">{formatDataBruta(item.expiredDate)}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Pagamento</span>
+                                                                                    <span className="validacao-stat-value">{formatDataBruta(item.paymentDate)}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Status</span>
+                                                                                    <span className={`table-status ${getStatusClass(statusItem)}`}>
+                                                                                        {getStatusIcon(statusItem)}
+                                                                                        {statusItem}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Conta</span>
+                                                                                    <span className="validacao-stat-value">{item.bearerName || "---"}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <p className="row-expand-empty">
+                                                                Nenhum retorno pra essa fatura nessa data.
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

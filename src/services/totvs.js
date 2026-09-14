@@ -311,7 +311,6 @@ const validarDocumentosFilial6 = async (documents) => {
             issueDate: validado.issueDate,
             expiredDate: validado.expiredDate,
             paymentDate: validado.paymentDate,
-            calculatedValues: validado.calculatedValues,
             validacaoFilial6,
         };
     });
