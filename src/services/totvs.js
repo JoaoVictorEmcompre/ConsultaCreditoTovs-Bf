@@ -6,38 +6,54 @@ const PASSWORD = import.meta.env.VITE_API_TOTVS_PASSWORD;
 
 let accessToken = null;
 let tokenExpiresAt = null;
+let tokenRequestInFlight = null;
 
-const generateToken = async () => {
-    try {
-        const response = await fetch(
-            `${API_BASE_URL}/api/totvsmoda/authorization/v2/token`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: new URLSearchParams({
-                    grant_type: "password",
-                    client_id: CLIENT_ID,
-                    client_secret: CLIENT_SECRET,
-                    username: USERNAME,
-                    password: PASSWORD,
-                }).toString(),
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(`Token generation failed: ${response.statusText}`);
+const requestToken = async () => {
+    const response = await fetch(
+        `${API_BASE_URL}/api/totvsmoda/authorization/v2/token`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+                grant_type: "password",
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                username: USERNAME,
+                password: PASSWORD,
+            }).toString(),
         }
+    );
 
-        const data = await response.json();
-        accessToken = data.access_token;
-        tokenExpiresAt = Date.now() + (data.expires_in * 1000 || 3600000);
-        return accessToken;
-    } catch (error) {
-        console.error("Erro ao gerar token TOTVS:", error);
-        throw error;
+    if (!response.ok) {
+        throw new Error(`Token generation failed: ${response.statusText}`);
     }
+
+    const data = await response.json();
+    accessToken = data.access_token;
+    tokenExpiresAt = Date.now() + (data.expires_in * 1000 || 3600000);
+    return accessToken;
+};
+
+// Buscas de um mesmo cliente disparam várias requisições em paralelo; sem essa
+// deduplicação, cada uma gera seu próprio token ao mesmo tempo e a TOTVS derruba
+// as concorrentes, causando "Token generation failed" mesmo com credenciais corretas.
+const generateToken = async () => {
+    if (tokenRequestInFlight) {
+        return tokenRequestInFlight;
+    }
+
+    tokenRequestInFlight = requestToken()
+        .catch((error) => {
+            console.error("Erro ao gerar token TOTVS:", error);
+            throw error;
+        })
+        .finally(() => {
+            tokenRequestInFlight = null;
+        });
+
+    return tokenRequestInFlight;
 };
 
 const getValidToken = async () => {
@@ -47,32 +63,37 @@ const getValidToken = async () => {
     return accessToken;
 };
 
+const fetchWithToken = (endpoint, body, token) =>
+    fetch(`${API_BASE_URL}${endpoint}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+    });
+
 const makeRequest = async (endpoint, body) => {
     try {
-        const token = await getValidToken();
+        let token;
+        try {
+            token = await getValidToken();
+        } catch {
+            // Token falhou (ex.: instabilidade pontual na TOTVS) — força gerar de novo
+            // antes de desistir, em vez de propagar o erro na primeira tentativa.
+            accessToken = null;
+            tokenExpiresAt = null;
+            token = await generateToken();
+        }
 
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(body),
-        });
+        const response = await fetchWithToken(endpoint, body, token);
 
         if (response.status === 401) {
             accessToken = null;
             tokenExpiresAt = null;
             const newToken = await generateToken();
 
-            return fetch(`${API_BASE_URL}${endpoint}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${newToken}`,
-                },
-                body: JSON.stringify(body),
-            });
+            return fetchWithToken(endpoint, body, newToken);
         }
 
         return response;

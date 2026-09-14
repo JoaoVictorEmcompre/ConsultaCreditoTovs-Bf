@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from "react";
 import "./Header.css";
 import logo from "../../assets/logobranca-bf.png";
 import {BRANCH_CODES} from "../../constants/branches.js";
-import {ChevronDown} from "lucide-react";
+import {ChevronDown, Search} from "lucide-react";
 
 function Header({onSearch, redeInterna, cnpjInicial = ""}) {
     const [cnpj, setCnpj] = useState(cnpjInicial);
@@ -100,10 +100,11 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
                         </div>
 
                         <div className="search-input-wrapper">
+                            <Search size={16} strokeWidth={2.75} className="search-icon"/>
                             <input
                                 type="text"
                                 className="search-input"
-                                placeholder="Digite o CNPJ"
+                                placeholder="CPF, CNPJ ou código do cliente"
                                 value={cnpj}
                                 onChange={(e) => setCnpj(e.target.value)}
                                 onKeyDown={handleKeyDown}

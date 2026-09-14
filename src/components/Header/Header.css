@@ -166,12 +166,15 @@
     left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    color: #94a3b8;
+    display: flex;
+    color: #fff;
+    pointer-events: none;
 }
 
 .search-input {
     width: 100%;
-    padding: 0.6rem 0.75rem 0.6rem 2.5rem;
+    height: 100%;
+    padding: 0.6rem 0.75rem 0.6rem 2.375rem;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     font-size: 0.85rem;
@@ -189,6 +192,12 @@
 .search-input:focus {
     background: rgba(255, 255, 255, 0.18);
     border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+
+.search-input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .search-button {

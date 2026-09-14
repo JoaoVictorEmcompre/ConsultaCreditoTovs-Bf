@@ -421,7 +421,7 @@ function SituacaoFinanceira({duplicatas, mostrarFilial = false}) {
                                     {dup.diasAtraso > 0 ? (
                                         <span className="dias-atraso">{dup.diasAtraso}d</span>
                                     ) : (
-                                        <span className="dias-ok">0</span>
+                                        <span className="dias-ok">-</span>
                                     )}
                                 </td>
                                 <td>

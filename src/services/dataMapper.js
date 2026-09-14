@@ -300,51 +300,44 @@ export const mapFinancialBalanceToResumoCredito = (financialBalance, documents) 
     };
 };
 
+const diffEmDias = (dataMaisRecente, dataMaisAntiga) => {
+    const recente = new Date(dataMaisRecente);
+    recente.setHours(0, 0, 0, 0);
+
+    const antiga = new Date(dataMaisAntiga);
+    antiga.setHours(0, 0, 0, 0);
+
+    return Math.floor((recente - antiga) / 86400000);
+};
+
 export const mapDocumentsToDuplicatas = (documents) => {
     if (!documents || !documents.items) return [];
 
-    return documents.items.map((doc) => ({
-        id: `${doc.receivableCode}-${doc.installmentCode}`,
-        duplicata: doc.ourNumber?.toString() || "",
-        parcela: doc.installmentCode ? `${doc.installmentCode}/1` : "",
-        valor: doc.installmentValue || 0,
-        valorPag: doc.paidValue || 0,
-        dataEmissao: doc.issueDate
-            ? new Date(doc.issueDate).toLocaleDateString("pt-BR")
-            : "",
-        dataVencimento: doc.expiredDate
-            ? new Date(doc.expiredDate).toLocaleDateString("pt-BR")
-            : "",
-        dataPagamento: doc.paymentDate
-            ? new Date(doc.paymentDate).toLocaleDateString("pt-BR")
-            : null,
-        diasAtraso: (() => {
-            if ((doc.calculatedValues?.daysLate || 0) > 0) {
-                return doc.calculatedValues.daysLate;
-            }
+    const totalParcelasPorDuplicata = documents.items.reduce((acc, doc) => {
+        acc[doc.receivableCode] = (acc[doc.receivableCode] || 0) + 1;
+        return acc;
+    }, {});
 
-            if (!doc.paymentDate) {
-                const expired = new Date(doc.expiredDate);
-                expired.setHours(0, 0, 0, 0);
+    return documents.items.map((doc) => {
+        const totalParcelas = totalParcelasPorDuplicata[doc.receivableCode] || 1;
 
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+        // O atraso de um título pago é sempre a diferença entre pagamento e vencimento,
+        // nunca o "daysLate" da API — esse campo reflete o atraso até HOJE, então um
+        // título pago em dia há muito tempo apareceria com centenas de dias de atraso.
+        const diasAtrasoPagamento = doc.paymentDate
+            ? Math.max(diffEmDias(doc.paymentDate, doc.expiredDate), 0)
+            : 0;
 
-                const diff = Math.floor((today - expired) / 86400000);
-                return diff > 0 ? diff : 0;
-            }
+        const diasAtrasoAtual = (doc.calculatedValues?.daysLate || 0) > 0
+            ? doc.calculatedValues.daysLate
+            : Math.max(diffEmDias(new Date(), doc.expiredDate), 0);
 
-            return 0;
-        })(),
-        statusPagamento: (() => {
+        const pagoParcialmente = Boolean(doc.paymentDate) && (doc.paidValue || 0) < (doc.installmentValue || 0);
+
+        const statusPagamento = (() => {
             if (doc.paymentDate) {
-                if ((doc.paidValue || 0) < (doc.installmentValue || 0)) {
-                    return "Pago Parcialmente";
-                }
-
-                return (doc.calculatedValues?.daysLate || 0) > 0
-                    ? "Pago com Atraso"
-                    : "Pago";
+                if (pagoParcialmente) return "Pago Parcialmente";
+                return diasAtrasoPagamento > 0 ? "Pago com Atraso" : "Pago";
             }
 
             const expired = new Date(doc.expiredDate);
@@ -355,10 +348,29 @@ export const mapDocumentsToDuplicatas = (documents) => {
 
             if (expired.getTime() === today.getTime()) return "Vence Hoje";
             return expired < today ? "Vencido" : "A Vencer";
-        })(),
-        conta: doc.bearerName || "",
-        filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
-    }));
+        })();
+
+        return {
+            id: `${doc.receivableCode}-${doc.installmentCode}`,
+            duplicata: doc.ourNumber?.toString() || "",
+            parcela: doc.installmentCode ? `${doc.installmentCode}/${totalParcelas}` : "",
+            valor: doc.installmentValue || 0,
+            valorPag: doc.paidValue || 0,
+            dataEmissao: doc.issueDate
+                ? new Date(doc.issueDate).toLocaleDateString("pt-BR")
+                : "",
+            dataVencimento: doc.expiredDate
+                ? new Date(doc.expiredDate).toLocaleDateString("pt-BR")
+                : "",
+            dataPagamento: doc.paymentDate
+                ? new Date(doc.paymentDate).toLocaleDateString("pt-BR")
+                : null,
+            diasAtraso: doc.paymentDate ? diasAtrasoPagamento : diasAtrasoAtual,
+            statusPagamento,
+            conta: doc.bearerName || "",
+            filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
+        };
+    });
 };
 
 export const buildInitialPartes = (dadosCadastrais = {}) => ({
