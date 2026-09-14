@@ -220,6 +220,105 @@ export const searchCustomerFinancialBalance = async (criterioCliente, branchCode
     }
 };
 
+// A filial 6 às vezes retorna dados de parcela inconsistentes na busca em lote;
+// pra essas linhas, refazemos a busca isolada por número da fatura (receivableCode)
+// + data de emissão e usamos o retorno dela como fonte de verdade pros valores/datas/status.
+const validateBranch6Document = async ({receivableCode, issueDate}) => {
+    try {
+        const response = await makeRequest(
+            "/api/totvsmoda/accounts-receivable/v2/documents/search",
+            {
+                filter: {
+                    branchCodeList: [6],
+                    receivableCodeList: [receivableCode],
+                    startIssueDate: issueDate,
+                    endIssueDate: issueDate,
+                },
+                expand: "invoice",
+                page: 1,
+                pageSize: 100,
+            }
+        );
+
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error("Erro ao validar documento da filial 6:", error);
+        return null;
+    }
+};
+
+const validarDocumentosFilial6 = async (documents) => {
+    const itensFilial6 = documents.items.filter((doc) => doc.branchCode === 6);
+    if (itensFilial6.length === 0) return documents;
+
+    // A busca de validação não filtra por cliente, só por fatura (receivableCode)
+    // + data — então parcelas da mesma fatura/dia reaproveitam a mesma chamada.
+    const gruposParaValidar = new Map();
+    itensFilial6.forEach((doc) => {
+        const chave = `${doc.receivableCode}|${doc.issueDate}`;
+        if (!gruposParaValidar.has(chave)) {
+            gruposParaValidar.set(chave, {
+                receivableCode: doc.receivableCode,
+                issueDate: doc.issueDate,
+            });
+        }
+    });
+
+    const chavesGrupo = Array.from(gruposParaValidar.keys());
+    const resultadosValidacao = await Promise.all(
+        chavesGrupo.map((chave) => validateBranch6Document(gruposParaValidar.get(chave)))
+    );
+
+    // Resposta bruta (pode trazer mais de um cliente, já que não filtramos por
+    // customerCode) de cada grupo, guardada à parte pra exibir na tela.
+    const respostaBrutaPorGrupo = new Map();
+    chavesGrupo.forEach((chave, index) => {
+        respostaBrutaPorGrupo.set(chave, resultadosValidacao[index]);
+    });
+
+    // A mesma fatura pode voltar vinculada a mais de um cliente. Não importa de
+    // quem é — se algum dos retornos estiver com problema (sem pagamento), é
+    // esse que vale pra linha normal, não o cliente que estamos consultando.
+    const itensPorParcela = new Map();
+    resultadosValidacao.forEach((resultado) => {
+        resultado?.items?.forEach((item) => {
+            const chave = `${item.receivableCode}|${item.installmentCode}`;
+            if (!itensPorParcela.has(chave)) itensPorParcela.set(chave, []);
+            itensPorParcela.get(chave).push(item);
+        });
+    });
+
+    const escolherItemValidado = (itens) => {
+        if (!itens || itens.length === 0) return null;
+        return itens.find((item) => !item.paymentDate) || itens[0];
+    };
+
+    const itemsAtualizados = documents.items.map((doc) => {
+        if (doc.branchCode !== 6) return doc;
+
+        const chaveGrupo = `${doc.receivableCode}|${doc.issueDate}`;
+        const validacaoFilial6 = respostaBrutaPorGrupo.get(chaveGrupo) || null;
+        const candidatos = itensPorParcela.get(`${doc.receivableCode}|${doc.installmentCode}`);
+        const validado = escolherItemValidado(candidatos);
+
+        if (!validado) return {...doc, validacaoFilial6};
+
+        return {
+            ...doc,
+            installmentValue: validado.installmentValue,
+            paidValue: validado.paidValue,
+            issueDate: validado.issueDate,
+            expiredDate: validado.expiredDate,
+            paymentDate: validado.paymentDate,
+            calculatedValues: validado.calculatedValues,
+            validacaoFilial6,
+        };
+    });
+
+    return {...documents, items: itemsAtualizados};
+};
+
 export const searchDocuments = async (criterioCliente, branchCode) => {
     try {
         const response = await makeRequest(
@@ -241,7 +340,14 @@ export const searchDocuments = async (criterioCliente, branchCode) => {
             );
         }
 
-        return await response.json();
+        const documents = await response.json();
+
+        const incluiFilial6 = Array.isArray(branchCode) ? branchCode.includes(6) : branchCode === 6;
+        if (incluiFilial6) {
+            return await validarDocumentosFilial6(documents);
+        }
+
+        return documents;
     } catch (error) {
         console.error("Erro ao buscar documentos:", error);
         throw error;

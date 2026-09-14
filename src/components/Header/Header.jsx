@@ -9,6 +9,7 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
     const [branchCode, setBranchCode] = useState("");
     const [isBranchOpen, setIsBranchOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [avisoFilial, setAvisoFilial] = useState(false);
     const branchRef = useRef(null);
 
     useEffect(() => {
@@ -26,15 +27,27 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        if (!avisoFilial) return;
+        const timer = setTimeout(() => setAvisoFilial(false), 4000);
+        return () => clearTimeout(timer);
+    }, [avisoFilial]);
+
     const selectedBranch = BRANCH_CODES.find((branch) => branch.value === branchCode);
 
     const handleSelectBranch = (value) => {
         setBranchCode(value);
         setIsBranchOpen(false);
+        setAvisoFilial(false);
     };
 
     const handleSearch = async () => {
-        if (!cnpj.trim() || !branchCode) return;
+        if (!branchCode) {
+            setAvisoFilial(true);
+            return;
+        }
+
+        if (!cnpj.trim()) return;
 
         setLoading(true);
         try {
@@ -71,8 +84,11 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
                         <div className="branch-select-container" ref={branchRef}>
                             <button
                                 type="button"
-                                className={`branch-select-trigger ${!selectedBranch ? "is-placeholder" : ""}`}
-                                onClick={() => setIsBranchOpen((open) => !open)}
+                                className={`branch-select-trigger ${!selectedBranch ? "is-placeholder" : ""} ${avisoFilial ? "has-warning" : ""}`}
+                                onClick={() => {
+                                    setIsBranchOpen((open) => !open);
+                                    setAvisoFilial(false);
+                                }}
                                 disabled={loading}
                             >
                                 <span>{selectedBranch ? selectedBranch.label : "Filial"}</span>
@@ -82,6 +98,12 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
                                     className={`branch-select-chevron ${isBranchOpen ? "is-open" : ""}`}
                                 />
                             </button>
+
+                            {avisoFilial && (
+                                <div className="branch-select-warning">
+                                    Selecione uma filial para buscar
+                                </div>
+                            )}
 
                             {isBranchOpen && (
                                 <div className="branch-select-dropdown">
@@ -115,7 +137,7 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
                         <button
                             className="search-button"
                             onClick={handleSearch}
-                            disabled={loading || !branchCode}
+                            disabled={loading}
                         >
                             {loading ? "Buscando..." : "Buscar"}
                         </button>

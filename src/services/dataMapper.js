@@ -352,7 +352,8 @@ export const mapDocumentsToDuplicatas = (documents) => {
 
         return {
             id: `${doc.receivableCode}-${doc.installmentCode}`,
-            duplicata: doc.ourNumber?.toString() || "",
+            duplicata: doc.ourNumber?.toString() || "-",
+            fatura: doc.receivableCode?.toString() || "-",
             parcela: doc.installmentCode ? `${doc.installmentCode}/${totalParcelas}` : "",
             valor: doc.installmentValue || 0,
             valorPag: doc.paidValue || 0,
@@ -369,6 +370,7 @@ export const mapDocumentsToDuplicatas = (documents) => {
             statusPagamento,
             conta: doc.bearerName || "",
             filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
+            validacaoFilial6: doc.validacaoFilial6 || null,
         };
     });
 };

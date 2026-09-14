@@ -95,6 +95,28 @@
     cursor: not-allowed;
 }
 
+.branch-select-trigger.has-warning {
+    border-color: #f87171;
+    background: rgba(248, 113, 113, 0.14);
+}
+
+.branch-select-warning {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    min-width: max-content;
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    animation: branchDropdownOpen 0.15s ease-out;
+}
+
 .branch-select-chevron {
     flex-shrink: 0;
     transition: transform 0.2s ease;
