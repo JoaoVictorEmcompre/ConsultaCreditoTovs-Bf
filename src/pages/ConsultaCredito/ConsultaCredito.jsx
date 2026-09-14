@@ -62,10 +62,12 @@ function ConsultaCredito() {
     const [validandoAcesso, setValidandoAcesso] = useState(true);
     const [isRedeInterna, setIsRedeInterna] = useState(false);
     const [kExterno, setKExterno] = useState("");
+    const [branchCodeAtual, setBranchCodeAtual] = useState(DEFAULT_EXTERNAL_BRANCH_CODE);
 
     const handleSearch = useCallback(async (cnpj, branchCode = DEFAULT_EXTERNAL_BRANCH_CODE) => {
         setSearching(true);
         setError(null);
+        setBranchCodeAtual(branchCode);
 
         try {
             const cleanCnpj = limparCnpj(cnpj);
@@ -240,7 +242,10 @@ function ConsultaCredito() {
                 />
 
                 <ResumoCredito resumo={currentResumoCredito}/>
-                <SituacaoFinanceira duplicatas={currentDuplicatas}/>
+                <SituacaoFinanceira
+                    duplicatas={currentDuplicatas}
+                    mostrarFilial={Array.isArray(branchCodeAtual) && branchCodeAtual.length > 1}
+                />
             </main>
 
             <SimuladorNegociacao

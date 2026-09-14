@@ -149,6 +149,12 @@
     font-size: 0.8rem;
 }
 
+.col-filial {
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.78rem;
+}
+
 
 /* Sortable Headers */
 .financeira-table th.sortable {
@@ -164,10 +170,15 @@
 
 .sort-icon {
     display: inline-block;
-    margin-left: 0.4rem;
-    opacity: 0.5;
+    vertical-align: -2px;
+    margin-left: 0.35rem;
+    opacity: 0.4;
     transition: opacity 0.2s;
-    font-size: 0.75rem;
+}
+
+.sort-icon.sort-icon-active {
+    opacity: 0.9;
+    color: var(--color-accent);
 }
 
 .financeira-table th.sortable:hover .sort-icon {
@@ -225,6 +236,9 @@
 }
 
 .filter-status-button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     padding: 0.5rem 0.75rem;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
@@ -248,10 +262,13 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.filter-status-button::after {
-    content: " ▼";
-    font-size: 0.65rem;
+.filter-chevron {
     opacity: 0.6;
+    transition: transform 0.2s ease;
+}
+
+.filter-chevron.is-open {
+    transform: rotate(180deg);
 }
 
 .filter-status-dropdown {
@@ -314,6 +331,9 @@
 }
 
 .filter-export-button {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     padding: 0.5rem 0.75rem;
     border: 1px solid #cbd5e1;
     border-radius: 8px;

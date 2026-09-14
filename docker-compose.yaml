@@ -2,8 +2,8 @@ services:
   consulta-credito-totvs-bf:
     build: .
     image: consulta-credito-totvs-bf:v1
-    ports:
-      - "8084:4173"
+    expose:
+      - "4173"
     env_file:
       - ./.env
     labels:

@@ -1,15 +1,16 @@
 import "./ResumoCredito.css";
-import {HiOutlineChartBar, HiOutlineClock} from "react-icons/hi2";
 import {
-    MdOutlineAccountBalanceWallet,
-    MdOutlineSavings,
-    MdOutlineWarningAmber,
-    MdOutlineManageSearch
-} from "react-icons/md";
-import {PiCreditCardLight} from "react-icons/pi";
-import {CiCalendarDate} from "react-icons/ci";
-import {LuTimerReset} from "react-icons/lu";
-import {BsExclamationCircle, BsHourglassSplit} from "react-icons/bs";
+    BarChart3,
+    Wallet,
+    CreditCard as CreditCardIcon,
+    AlertTriangle,
+    Calendar,
+    ClipboardCheck,
+    TimerReset,
+    Clock,
+    CircleAlert,
+    Hourglass,
+} from "lucide-react";
 
 function formatCurrency(value) {
     if (value < 0) {
@@ -49,7 +50,7 @@ function ResumoCredito({resumo}) {
         <section className="resumo-section">
             <div className="section-header">
                 <div className="section-title-group">
-                    <HiOutlineChartBar size={20}/>
+                    <BarChart3 size={20}/>
 
                     <h2>Resumo de Cr&eacute;dito</h2>
                 </div>
@@ -83,7 +84,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="total"
                     icon={
-                        <MdOutlineAccountBalanceWallet size={20}/>
+                        <Wallet size={20}/>
                     }
                     label="Limite de Cr&eacute;dito Total"
                     value={formatCurrency(resumo.limiteCreditoTotal)}
@@ -92,7 +93,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="utilizado"
                     icon={
-                        <PiCreditCardLight size={20}/>
+                        <CreditCardIcon size={20}/>
                     }
                     label="Cr&eacute;dito Utilizado"
                     value={formatCurrency(resumo.limiteCreditoUtilizado)}
@@ -101,7 +102,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="disponivel"
                     icon={
-                        <MdOutlineAccountBalanceWallet size={20}/>
+                        <Wallet size={20}/>
                     }
                     label="Limite Dispon&iacute;vel"
                     value={formatCurrency(resumo.limiteDisponivel)}
@@ -110,7 +111,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="vencido"
                     icon={
-                        <MdOutlineWarningAmber size={20}/>
+                        <AlertTriangle size={20}/>
                     }
                     label="Parcelas Vencidas"
                     value={formatCurrency(resumo.parcelasVencidas)}
@@ -119,7 +120,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="avencer"
                     icon={
-                        <CiCalendarDate size={20}/>
+                        <Calendar size={20}/>
                     }
                     label="Parcelas A Vencer"
                     value={formatCurrency(resumo.parcelasAVencer)}
@@ -128,7 +129,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="info"
                     icon={
-                        <MdOutlineManageSearch size={20}/>
+                        <ClipboardCheck size={20}/>
                     }
                     label="&Uacute;ltima Revis&atilde;o de Cr&eacute;dito"
                     value={resumo.dataUltimaRevisao}
@@ -137,7 +138,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="info-neg"
                     icon={
-                        <LuTimerReset size={20}/>
+                        <TimerReset size={20}/>
                     }
                     label="Maior Atraso"
                     value={`${resumo.maiorAtraso} Dias`}
@@ -146,7 +147,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="info-neg"
                     icon={
-                        <HiOutlineClock size={20}/>
+                        <Clock size={20}/>
                     }
                     label="Média de Atraso (12m)"
                     value={`${resumo.prazoMedioAtraso12m} Dias`}
@@ -155,7 +156,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="info-neg"
                     icon={
-                        <BsExclamationCircle size={20}/>
+                        <CircleAlert size={20}/>
                     }
                     label="Títulos Vencidos"
                     value={`${resumo.countParcelasVencidas} Títulos`}
@@ -164,7 +165,7 @@ function ResumoCredito({resumo}) {
                 <CreditCard
                     variant="vencer"
                     icon={
-                        <BsHourglassSplit size={20}/>
+                        <Hourglass size={20}/>
                     }
                     label="Titulos à vencer"
                     value={`${resumo.pedidosAEntregar} Títulos`}

@@ -15,16 +15,21 @@ const COLUMNS = [
     {key: 'conta', label: 'Conta'}
 ];
 
-export const exportToCSV = (data, filename = 'duplicatas.csv') => {
+const FILIAL_COLUMN = {key: 'filial', label: 'Filial'};
+
+const getColumns = (incluirFilial) => incluirFilial ? [FILIAL_COLUMN, ...COLUMNS] : COLUMNS;
+
+export const exportToCSV = (data, filename = 'duplicatas.csv', incluirFilial = false) => {
     if (!data.length) {
         alert('Nenhum dado para exportar');
         return;
     }
 
-    const header = COLUMNS.map(col => `"${col.label}"`).join(',');
+    const columns = getColumns(incluirFilial);
+    const header = columns.map(col => `"${col.label}"`).join(',');
 
     const rows = data.map(item =>
-        COLUMNS.map(col => {
+        columns.map(col => {
             let value = item[col.key] || '';
             value = String(value).replace(/"/g, '""');
             return `"${value}"`;
@@ -38,16 +43,17 @@ export const exportToCSV = (data, filename = 'duplicatas.csv') => {
     downloadFile(csv, filename, 'text/csv;charset=utf-8;');
 };
 
-export const exportToXLSX = (data, filename = 'duplicatas.xlsx') => {
+export const exportToXLSX = (data, filename = 'duplicatas.xlsx', incluirFilial = false) => {
     if (!data.length) {
         alert('Nenhum dado para exportar');
         return;
     }
 
+    const columns = getColumns(incluirFilial);
     const worksheetData = [
-        COLUMNS.map(col => col.label),
+        columns.map(col => col.label),
         ...data.map(item =>
-            COLUMNS.map(col => item[col.key] || '')
+            columns.map(col => item[col.key] || '')
         )
     ];
 
@@ -55,7 +61,7 @@ export const exportToXLSX = (data, filename = 'duplicatas.xlsx') => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Duplicatas');
 
-    ws['!cols'] = COLUMNS.map(col => {
+    ws['!cols'] = columns.map(col => {
         const lengths = [col.label.length];
         return {wch: Math.max(...lengths) + 2};
     });
@@ -63,16 +69,17 @@ export const exportToXLSX = (data, filename = 'duplicatas.xlsx') => {
     XLSX.writeFile(wb, filename);
 };
 
-export const exportToXLS = (data, filename = 'duplicatas.xls') => {
+export const exportToXLS = (data, filename = 'duplicatas.xls', incluirFilial = false) => {
     if (!data.length) {
         alert('Nenhum dado para exportar');
         return;
     }
 
+    const columns = getColumns(incluirFilial);
     const worksheetData = [
-        COLUMNS.map(col => col.label),
+        columns.map(col => col.label),
         ...data.map(item =>
-            COLUMNS.map(col => item[col.key] || '')
+            columns.map(col => item[col.key] || '')
         )
     ];
 
@@ -83,11 +90,13 @@ export const exportToXLS = (data, filename = 'duplicatas.xls') => {
     XLSX.writeFile(wb, filename, {bookType: 'xls'});
 };
 
-export const exportToPDF = async (data, filename = 'duplicatas.pdf') => {
+export const exportToPDF = async (data, filename = 'duplicatas.pdf', incluirFilial = false) => {
     if (!data.length) {
         alert('Nenhum dado para exportar');
         return;
     }
+
+    const columns = getColumns(incluirFilial);
 
     try {
         const table = document.createElement('table');
@@ -97,7 +106,7 @@ export const exportToPDF = async (data, filename = 'duplicatas.pdf') => {
 
         const headerRow = table.insertRow();
         headerRow.style.backgroundColor = '#f8fafc';
-        COLUMNS.forEach(col => {
+        columns.forEach(col => {
             const cell = headerRow.insertCell();
             cell.textContent = col.label;
             cell.style.border = '1px solid #e2e8f0';
@@ -109,7 +118,7 @@ export const exportToPDF = async (data, filename = 'duplicatas.pdf') => {
         data.forEach((item, index) => {
             const row = table.insertRow();
             row.style.backgroundColor = index % 2 === 0 ? '#fff' : '#f8fafc';
-            COLUMNS.forEach(col => {
+            columns.forEach(col => {
                 const cell = row.insertCell();
                 cell.textContent = item[col.key] || '';
                 cell.style.border = '1px solid #e2e8f0';

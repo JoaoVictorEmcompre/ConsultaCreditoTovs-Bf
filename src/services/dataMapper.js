@@ -1,5 +1,6 @@
 import axios from "axios";
 import extenso from "extenso";
+import {getBranchLabel} from "../constants/branches.js";
 
 const viacepClient = axios.create({
     baseURL: "https://viacep.com.br/ws",
@@ -356,6 +357,7 @@ export const mapDocumentsToDuplicatas = (documents) => {
             return expired < today ? "Vencido" : "A Vencer";
         })(),
         conta: doc.bearerName || "",
+        filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
     }));
 };
 

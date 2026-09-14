@@ -1,7 +1,7 @@
 import {useState} from "react";
 import {useNavigate} from "react-router-dom";
 import users from "./users.json";
-import logo from "../../assets/logoConvicto.png";
+import logo from "../../assets/logobranca-bf.png";
 import {savePermanentLogin, clearPermanentLogin} from "../../services/authService.js";
 
 import "./login.css";

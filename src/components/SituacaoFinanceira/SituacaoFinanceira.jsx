@@ -1,14 +1,19 @@
 import {useState, useMemo, useEffect, useRef} from "react";
 import "./SituacaoFinanceira.css";
 import {exportToCSV, exportToXLSX, exportToXLS, exportToPDF} from "../../utils/exportUtils.js";
-import {HiOutlineCheck} from "react-icons/hi";
 import {
-    HiOutlineClock,
-    HiOutlineCurrencyDollar,
-    HiOutlineExclamationTriangle,
-    HiOutlineStopCircle,
-    HiOutlineXCircle
-} from "react-icons/hi2";
+    Check,
+    Clock,
+    DollarSign,
+    AlertTriangle,
+    StopCircle,
+    XCircle,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
+    ChevronDown,
+    Download,
+} from "lucide-react";
 
 function formatCurrency(value) {
     if (isNaN(value) || value === null || value === undefined) {
@@ -57,27 +62,27 @@ function getStatusIcon(status) {
     switch (status) {
         case "Pago":
             return (
-                <HiOutlineCheck size={20}/>
+                <Check size={16}/>
             );
         case "A Vencer":
             return (
-                <HiOutlineClock size={20}/>
+                <Clock size={16}/>
             );
         case "Vencido":
             return (
-                <HiOutlineXCircle size={20}/>
+                <XCircle size={16}/>
             );
         case "Pago com Atraso":
             return (
-                <HiOutlineExclamationTriangle size={20}/>
+                <AlertTriangle size={16}/>
             );
         case "Pago Parcialmente":
             return (
-                <HiOutlineStopCircle size={20}/>
+                <StopCircle size={16}/>
             );
         case "Vence Hoje":
             return (
-                <HiOutlineClock size={20}/>
+                <Clock size={16}/>
             );
         default:
             return null;
@@ -86,12 +91,14 @@ function getStatusIcon(status) {
 
 function SortIcon({field, sortField, sortOrder}) {
     if (field !== sortField) {
-        return <span className="sort-icon">⇅</span>;
+        return <ArrowUpDown size={13} className="sort-icon"/>;
     }
-    return <span className="sort-icon">{sortOrder === "asc" ? "↑" : "↓"}</span>;
+    return sortOrder === "asc"
+        ? <ArrowUp size={13} className="sort-icon sort-icon-active"/>
+        : <ArrowDown size={13} className="sort-icon sort-icon-active"/>;
 }
 
-function SituacaoFinanceira({duplicatas}) {
+function SituacaoFinanceira({duplicatas, mostrarFilial = false}) {
     const [sort, setSort] = useState({field: "dataVencimento", order: "asc"});
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStatuses, setSelectedStatuses] = useState([]);
@@ -192,6 +199,10 @@ function SituacaoFinanceira({duplicatas}) {
                     aVal = a.conta;
                     bVal = b.conta;
                     break;
+                case "filial":
+                    aVal = a.filial;
+                    bVal = b.filial;
+                    break;
                 case "duplicata":
                     aVal = a.duplicata;
                     bVal = b.duplicata;
@@ -226,6 +237,7 @@ function SituacaoFinanceira({duplicatas}) {
 
     const handleExport = async (format) => {
         const dataToExport = sorted.map(item => ({
+            ...(mostrarFilial && {filial: item.filial}),
             duplicata: item.duplicata,
             parcela: item.parcela,
             valor: formatCurrency(item.valor),
@@ -243,16 +255,16 @@ function SituacaoFinanceira({duplicatas}) {
 
         switch (format) {
             case 'csv':
-                exportToCSV(dataToExport, `${filename}.csv`);
+                exportToCSV(dataToExport, `${filename}.csv`, mostrarFilial);
                 break;
             case 'xlsx':
-                exportToXLSX(dataToExport, `${filename}.xlsx`);
+                exportToXLSX(dataToExport, `${filename}.xlsx`, mostrarFilial);
                 break;
             case 'xls':
-                exportToXLS(dataToExport, `${filename}.xls`);
+                exportToXLS(dataToExport, `${filename}.xls`, mostrarFilial);
                 break;
             case 'pdf':
-                await exportToPDF(dataToExport, `${filename}.pdf`);
+                await exportToPDF(dataToExport, `${filename}.pdf`, mostrarFilial);
                 break;
             default:
                 break;
@@ -266,7 +278,7 @@ function SituacaoFinanceira({duplicatas}) {
         <section className="financeira-section">
             <div className="section-header">
                 <div className="section-title-group">
-                    <HiOutlineCurrencyDollar size={20}/>
+                    <DollarSign size={20}/>
                     <h2>Situação Financeira</h2>
                 </div>
                 <span className="record-count">{sorted.length} registros</span>
@@ -286,7 +298,8 @@ function SituacaoFinanceira({duplicatas}) {
                         className="filter-status-button"
                         onClick={handleStatusFilterToggle}
                     >
-                        Status {selectedStatuses.length > 0 ? `(${selectedStatuses.length})` : "(Todos)"}
+                        <span>Status {selectedStatuses.length > 0 ? `(${selectedStatuses.length})` : "(Todos)"}</span>
+                        <ChevronDown size={14} className={`filter-chevron ${isStatusFilterOpen ? "is-open" : ""}`}/>
                     </button>
                     {isStatusFilterOpen && (
                         <div className="filter-status-dropdown">
@@ -309,7 +322,9 @@ function SituacaoFinanceira({duplicatas}) {
                         className="filter-export-button"
                         onClick={handleExportToggle}
                     >
-                        📥 Exportar
+                        <Download size={15}/>
+                        <span>Exportar</span>
+                        <ChevronDown size={14} className={`filter-chevron ${isExportOpen ? "is-open" : ""}`}/>
                     </button>
                     {isExportOpen && (
                         <div className="filter-export-dropdown">
@@ -348,6 +363,11 @@ function SituacaoFinanceira({duplicatas}) {
                     <table className="financeira-table">
                         <thead>
                         <tr>
+                            {mostrarFilial && (
+                                <th className="sortable" onClick={() => handleSortClick("filial")}>
+                                    Filial <SortIcon field="filial" sortField={sort.field} sortOrder={sort.order}/>
+                                </th>
+                            )}
                             <th className="sortable" onClick={() => handleSortClick("duplicata")}>
                                 Duplicata <SortIcon field="duplicata" sortField={sort.field} sortOrder={sort.order}/>
                             </th>
@@ -385,6 +405,9 @@ function SituacaoFinanceira({duplicatas}) {
                         <tbody>
                         {sorted.map((dup) => (
                             <tr key={dup.id} className={dup.statusPagamento === "Vencido" ? "row-vencido" : ""}>
+                                {mostrarFilial && (
+                                    <td className="col-filial">{dup.filial}</td>
+                                )}
                                 <td className="col-duplicata">
                                     <code>{dup.duplicata}</code>
                                 </td>

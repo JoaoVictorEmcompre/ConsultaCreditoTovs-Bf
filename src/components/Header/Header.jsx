@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from "react";
 import "./Header.css";
 import logo from "../../assets/logobranca-bf.png";
 import {BRANCH_CODES} from "../../constants/branches.js";
-import {HiOutlineChevronDown} from "react-icons/hi2";
+import {ChevronDown} from "lucide-react";
 
 function Header({onSearch, redeInterna, cnpjInicial = ""}) {
     const [cnpj, setCnpj] = useState(cnpjInicial);
@@ -76,8 +76,9 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
                                 disabled={loading}
                             >
                                 <span>{selectedBranch ? selectedBranch.label : "Filial"}</span>
-                                <HiOutlineChevronDown
+                                <ChevronDown
                                     size={16}
+                                    strokeWidth={2.25}
                                     className={`branch-select-chevron ${isBranchOpen ? "is-open" : ""}`}
                                 />
                             </button>

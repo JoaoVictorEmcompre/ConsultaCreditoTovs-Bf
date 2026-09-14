@@ -168,7 +168,7 @@ export const searchCustomerFinancialBalance = async (criterioCliente, branchCode
             {
                 filter: buildCustomerFilter(criterioCliente),
                 option: {
-                    branchCodeList: [branchCode],
+                    branchCodeList: Array.isArray(branchCode) ? branchCode : [branchCode],
                     isLimit: true,
                     isOpenInvoice: true,
                     isRefundCredit: true,
@@ -206,7 +206,7 @@ export const searchDocuments = async (criterioCliente, branchCode) => {
             {
                 filter: {
                     ...buildCustomerFilter(criterioCliente),
-                    branchCodeList: [branchCode],
+                    branchCodeList: Array.isArray(branchCode) ? branchCode : [branchCode],
                 },
                 expand: "check,invoice,commissioneds,calculateValue",
                 page: 1,
