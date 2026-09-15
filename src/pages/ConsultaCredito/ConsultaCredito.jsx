@@ -5,6 +5,7 @@ import InformacoesCadastrais from "../../components/InformacoesCadastrais/Inform
 import SituacaoFinanceira from "../../components/SituacaoFinanceira/SituacaoFinanceira.jsx";
 import ResumoCredito from "../../components/ResumoCredito/ResumoCredito.jsx";
 import InformacoesComplementares from "../../components/InformacoesComplementares/InformacoesComplementares.jsx";
+import TicketsZammad from "../../components/TicketsZammad/TicketsZammad.jsx";
 import SimuladorNegociacao from "../../components/SimuladorNegociacao/SimuladorNegociacao.jsx";
 import AcordoCredito from "../../components/AcordoCredito/AcordoCredito.jsx";
 import {
@@ -18,6 +19,7 @@ import {
     searchCredevTitles,
     searchDebitNotes,
 } from "../../services/totvs.js";
+import {searchZammadTicketsByCustomerCpfCnpj} from "../../services/zammad.js";
 import {
     mapLegalEntityToDadosCadastrais,
     mapFinancialBalanceToResumoCredito,
@@ -84,6 +86,7 @@ function ConsultaCredito() {
         titulosCredev: [],
         notasDebito: [],
     });
+    const [currentTicketsZammad, setCurrentTicketsZammad] = useState([]);
     const [error, setError] = useState(null);
     const [searching, setSearching] = useState(false);
     const [validandoAcesso, setValidandoAcesso] = useState(true);
@@ -112,6 +115,7 @@ function ConsultaCredito() {
                     titulosCredev: [],
                     notasDebito: [],
                 });
+                setCurrentTicketsZammad([]);
                 return;
             }
 
@@ -161,7 +165,7 @@ function ConsultaCredito() {
 
             const cpfCnpjComplementar = criterio.tipo !== "codigo"
                 ? criterio.valor
-                : (legalEntityData.items?.[0]?.cnpj || legalEntityData.items?.[0]?.cpf || null);
+                : limparCnpj(legalEntityData.items?.[0]?.cnpj || legalEntityData.items?.[0]?.cpf || "") || null;
 
             if (!cpfCnpjComplementar) {
                 setCurrentInfoComplementar({
@@ -171,6 +175,7 @@ function ConsultaCredito() {
                     titulosCredev: [],
                     notasDebito: [],
                 });
+                setCurrentTicketsZammad([]);
             } else {
                 const [notasVendaResult, notasDevolucaoResult, titulosCredevResult, notasDebitoResult] =
                     await Promise.allSettled([
@@ -180,21 +185,36 @@ function ConsultaCredito() {
                         searchDebitNotes(cpfCnpjComplementar, branchCode),
                     ]);
 
+                const notasVenda = notasVendaResult.status === "fulfilled"
+                    ? mapOrdersToNotasVenda(notasVendaResult.value)
+                    : [];
+                const notasDevolucao = notasDevolucaoResult.status === "fulfilled"
+                    ? mapFiscalInvoicesToNotasDevolucao(notasDevolucaoResult.value)
+                    : [];
+                const titulosCredev = titulosCredevResult.status === "fulfilled"
+                    ? mapDocumentsToCredevTitulos(titulosCredevResult.value)
+                    : [];
+                const notasDebito = notasDebitoResult.status === "fulfilled"
+                    ? mapDocumentsToNotasDebito(notasDebitoResult.value)
+                    : [];
+
                 setCurrentInfoComplementar({
                     saldoCredev,
-                    notasVenda: notasVendaResult.status === "fulfilled"
-                        ? mapOrdersToNotasVenda(notasVendaResult.value)
-                        : [],
-                    notasDevolucao: notasDevolucaoResult.status === "fulfilled"
-                        ? mapFiscalInvoicesToNotasDevolucao(notasDevolucaoResult.value)
-                        : [],
-                    titulosCredev: titulosCredevResult.status === "fulfilled"
-                        ? mapDocumentsToCredevTitulos(titulosCredevResult.value)
-                        : [],
-                    notasDebito: notasDebitoResult.status === "fulfilled"
-                        ? mapDocumentsToNotasDebito(notasDebitoResult.value)
-                        : [],
+                    notasVenda,
+                    notasDevolucao,
+                    titulosCredev,
+                    notasDebito,
                 });
+
+                // Isolado do try principal: se o Zammad falhar, o resto da
+                // consulta já carregada continua de pé.
+                try {
+                    const ticketsZammad = await searchZammadTicketsByCustomerCpfCnpj(cpfCnpjComplementar);
+                    setCurrentTicketsZammad(ticketsZammad);
+                } catch (zammadError) {
+                    console.error("Erro ao buscar tickets Zammad:", zammadError);
+                    setCurrentTicketsZammad([]);
+                }
             }
         } catch (err) {
             setError(err.message || "Erro ao buscar dados. Verifique o CNPJ e tente novamente.");
@@ -208,6 +228,7 @@ function ConsultaCredito() {
                 titulosCredev: [],
                 notasDebito: [],
             });
+            setCurrentTicketsZammad([]);
         } finally {
             setSearching(false);
         }
@@ -333,6 +354,7 @@ function ConsultaCredito() {
                     mostrarFilial={Array.isArray(branchCodeAtual) && branchCodeAtual.length > 1}
                 />
                 <InformacoesComplementares info={currentInfoComplementar}/>
+                <TicketsZammad tickets={currentTicketsZammad}/>
             </main>
 
             <SimuladorNegociacao
