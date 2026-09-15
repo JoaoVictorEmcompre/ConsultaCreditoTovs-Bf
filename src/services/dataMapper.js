@@ -376,6 +376,7 @@ export const mapOrdersToNotasVenda = (orders) => {
             id: `${order.orderCode ?? ""}`,
             pedido: order.orderCode?.toString() || "-",
             codigoMarketplace: order.customerOrderCode || order.orderId || "-",
+            valorTotal: order.totalAmountOrder || 0,
             notaFiscal: primeiraInvoice.code?.toString() || "-",
             representante: order.representativeName || "-",
             data: order.orderDate ? new Date(order.orderDate).toLocaleDateString("pt-BR") : "-",

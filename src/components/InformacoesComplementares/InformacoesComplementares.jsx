@@ -127,12 +127,13 @@ function InformacoesComplementares({ info }) {
                 <BlocoTabela
                     icone={ShoppingBag}
                     titulo="NF de Venda / Pedido"
-                    colunas={["Pedido", "Pedido Marketplace", "NF", "Representante", "Data"]}
+                    colunas={["Pedido", "Pedido Marketplace", "Valor Total", "NF", "Representante", "Data"]}
                     linhas={notasVenda}
                     renderLinha={(item) => (
                         <tr key={item.id}>
                             <td><code>{item.pedido}</code></td>
                             <td>{item.codigoMarketplace}</td>
+                            <td>R$ {item.valorTotal}</td>
                             <td><code>{item.notaFiscal}</code></td>
                             <td>{item.representante}</td>
                             <td>{item.data}</td>
