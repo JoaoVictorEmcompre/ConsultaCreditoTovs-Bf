@@ -1,6 +1,6 @@
 import axios from "axios";
 import extenso from "extenso";
-import {getBranchLabel} from "../constants/branches.js";
+import { getBranchLabel } from "../constants/branches.js";
 
 const viacepClient = axios.create({
     baseURL: "https://viacep.com.br/ws",
@@ -96,7 +96,7 @@ async function consultarCep(cep) {
     }
 
     try {
-        const {data} = await viacepClient.get(`/${cepLimpo}/json/`);
+        const { data } = await viacepClient.get(`/${cepLimpo}/json/`);
 
         if (!data || data.erro) {
             cepCache.set(cepLimpo, null);
@@ -120,7 +120,7 @@ const formatValorExtensoAutomatico = (valor) => {
     if (!valor || valor === 0) return "zero";
 
     try {
-        return extenso(valor, {mode: "currency"});
+        return extenso(valor, { mode: "currency" });
     } catch {
         return String(valor);
     }
@@ -156,9 +156,8 @@ export const mapLegalEntityToDadosCadastrais = async (legalEntity) => {
         cep: address?.cep || "",
 
         endereco: address
-            ? `${address.address || ""}${address.addressNumber ? ", " + address.addressNumber : ""}${
-                address.complement ? " " + address.complement : ""
-            }`.trim()
+            ? `${address.address || ""}${address.addressNumber ? ", " + address.addressNumber : ""}${address.complement ? " " + address.complement : ""
+                }`.trim()
             : "",
 
         telefoneFixo: formatPhone(phone?.number),
@@ -363,7 +362,7 @@ export const mapFinancialBalanceToSaldoCredev = (financialBalance) => {
 
     const total = values.reduce((soma, v) => soma + (v.refundCreditValue || 0), 0);
 
-    return {total, porFilial};
+    return { total, porFilial };
 };
 
 export const mapOrdersToNotasVenda = (orders) => {
