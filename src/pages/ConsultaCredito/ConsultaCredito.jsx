@@ -1,5 +1,6 @@
-import {useEffect, useState, useCallback} from "react";
+import {useEffect, useState, useCallback, useRef} from "react";
 import {useNavigate, useSearchParams} from "react-router-dom";
+import {LuSearchCheck as SearchCheck} from "react-icons/lu";
 import Header from "../../components/Header/Header.jsx";
 import InformacoesCadastrais from "../../components/InformacoesCadastrais/InformacoesCadastrais.jsx";
 import SituacaoFinanceira from "../../components/SituacaoFinanceira/SituacaoFinanceira.jsx";
@@ -76,6 +77,7 @@ function ConsultaCredito() {
 
     const [simuladorAberto, setSimuladorAberto] = useState(false);
     const [acordoAberto, setAcordoAberto] = useState(false);
+    const [searchSeq, setSearchSeq] = useState(0);
     const [currentDadosCadastrais, setCurrentDadosCadastrais] = useState(null);
     const [currentDuplicatas, setCurrentDuplicatas] = useState([]);
     const [currentResumoCredito, setCurrentResumoCredito] = useState(null);
@@ -89,13 +91,24 @@ function ConsultaCredito() {
     const [currentTicketsZammad, setCurrentTicketsZammad] = useState([]);
     const [error, setError] = useState(null);
     const [searching, setSearching] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
     const [validandoAcesso, setValidandoAcesso] = useState(true);
     const [isRedeInterna, setIsRedeInterna] = useState(false);
     const [kExterno, setKExterno] = useState("");
     const [branchCodeAtual, setBranchCodeAtual] = useState(DEFAULT_EXTERNAL_BRANCH_CODE);
 
+    // Guarda a sequência da busca mais recente pra ignorar respostas de buscas
+    // antigas que cheguem atrasadas — sem isso, se uma nova busca começar antes da
+    // anterior terminar, quem responder por último "vence", mesmo sendo o cliente errado.
+    const searchSeqRef = useRef(0);
+
     const handleSearch = useCallback(async (cnpj, branchCode = DEFAULT_EXTERNAL_BRANCH_CODE) => {
+        const minhaSeq = ++searchSeqRef.current;
+        const aindaAtual = () => searchSeqRef.current === minhaSeq;
+
         setSearching(true);
+        setHasSearched(true);
+        setSearchSeq(minhaSeq);
         setError(null);
         setBranchCodeAtual(branchCode);
 
@@ -134,6 +147,10 @@ function ConsultaCredito() {
                 searchCustomerFinancialBalance(criterioCliente, branchCode),
                 searchDocuments(criterioCliente, branchCode),
             ]);
+
+            // Uma busca mais nova já começou enquanto esperávamos essa resposta —
+            // descarta o resultado atrasado pra não misturar dados de dois clientes.
+            if (!aindaAtual()) return;
 
             if (legalEntityData.items?.length > 0) {
                 const mappedDados = await mapLegalEntityToDadosCadastrais(legalEntityData.items[0]);
@@ -198,6 +215,8 @@ function ConsultaCredito() {
                     ? mapDocumentsToNotasDebito(notasDebitoResult.value)
                     : [];
 
+                if (!aindaAtual()) return;
+
                 setCurrentInfoComplementar({
                     saldoCredev,
                     notasVenda,
@@ -210,13 +229,14 @@ function ConsultaCredito() {
                 // consulta já carregada continua de pé.
                 try {
                     const ticketsZammad = await searchZammadTicketsByCustomerCpfCnpj(cpfCnpjComplementar);
-                    setCurrentTicketsZammad(ticketsZammad);
+                    if (aindaAtual()) setCurrentTicketsZammad(ticketsZammad);
                 } catch (zammadError) {
                     console.error("Erro ao buscar tickets Zammad:", zammadError);
-                    setCurrentTicketsZammad([]);
+                    if (aindaAtual()) setCurrentTicketsZammad([]);
                 }
             }
         } catch (err) {
+            if (!aindaAtual()) return;
             setError(err.message || "Erro ao buscar dados. Verifique o CNPJ e tente novamente.");
             setCurrentDadosCadastrais(null);
             setCurrentResumoCredito(null);
@@ -230,7 +250,7 @@ function ConsultaCredito() {
             });
             setCurrentTicketsZammad([]);
         } finally {
-            setSearching(false);
+            if (aindaAtual()) setSearching(false);
         }
     }, []);
 
@@ -341,20 +361,36 @@ function ConsultaCredito() {
                     </div>
                 )}
 
-                <InformacoesCadastrais
-                    dados={currentDadosCadastrais}
-                    onAbrirSimulador={() => setSimuladorAberto(true)}
-                    onAbrirAcordo={() => setAcordoAberto(true)}
-                    ipInterno={isRedeInterna}
-                />
+                {hasSearched ? (
+                    <>
+                        <InformacoesCadastrais
+                            key={`cadastrais-${searchSeq}`}
+                            dados={currentDadosCadastrais}
+                            onAbrirSimulador={() => setSimuladorAberto(true)}
+                            onAbrirAcordo={() => setAcordoAberto(true)}
+                            ipInterno={isRedeInterna}
+                        />
 
-                <ResumoCredito resumo={currentResumoCredito}/>
-                <SituacaoFinanceira
-                    duplicatas={currentDuplicatas}
-                    mostrarFilial={Array.isArray(branchCodeAtual) && branchCodeAtual.length > 1}
-                />
-                <InformacoesComplementares info={currentInfoComplementar}/>
-                <TicketsZammad tickets={currentTicketsZammad}/>
+                        <ResumoCredito key={`resumo-${searchSeq}`} resumo={currentResumoCredito}/>
+                        <SituacaoFinanceira
+                            key={`financeira-${searchSeq}`}
+                            duplicatas={currentDuplicatas}
+                            mostrarFilial={Array.isArray(branchCodeAtual) && branchCodeAtual.length > 1}
+                        />
+                        <InformacoesComplementares key={`complementares-${searchSeq}`} info={currentInfoComplementar}/>
+                        <TicketsZammad key={`zammad-${searchSeq}`} tickets={currentTicketsZammad}/>
+                    </>
+                ) : (
+                    isRedeInterna && !searching && (
+                        <div className="consulta-boas-vindas">
+                            <div className="consulta-boas-vindas-icon">
+                                <SearchCheck size={28}/>
+                            </div>
+                            <h2>Busque um cliente para começar</h2>
+                            <p>Informe o CNPJ, CPF ou código do cliente no campo de busca acima para ver os dados de crédito.</p>
+                        </div>
+                    )
+                )}
             </main>
 
             <SimuladorNegociacao

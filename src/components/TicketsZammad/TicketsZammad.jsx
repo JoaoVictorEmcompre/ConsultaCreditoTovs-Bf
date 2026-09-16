@@ -1,7 +1,9 @@
 import { Fragment, useState } from "react";
 import "./TicketsZammad.css";
-import { Ticket, ChevronDown, Inbox, MessageSquare, Lock } from "lucide-react";
+import { LuTicket as Ticket, LuChevronDown as ChevronDown, LuMessageSquare as MessageSquare, LuLock as Lock } from "react-icons/lu";
 import { getZammadTicketArticles } from "../../services/zammad.js";
+import EmptyState from "../common/EmptyState.jsx";
+import SectionCollapseButton from "../common/SectionCollapseButton.jsx";
 
 const ESTADO_LABELS = {
     new: "Novo",
@@ -185,6 +187,8 @@ function TicketRow({ ticket }) {
 }
 
 function TicketsZammad({ tickets = [] }) {
+    const [colapsado, setColapsado] = useState(false);
+
     return (
         <section className="zammad-section">
             <div className="section-header">
@@ -192,15 +196,24 @@ function TicketsZammad({ tickets = [] }) {
                     <Ticket size={20} />
                     <h2>Tickets do Zammad</h2>
                 </div>
-                <span className="info-complementar-contagem">{tickets.length}</span>
+                <div className="section-header-actions">
+                    <span className="info-complementar-contagem">{tickets.length}</span>
+                    <SectionCollapseButton
+                        colapsado={colapsado}
+                        onClick={() => setColapsado((v) => !v)}
+                        label="Tickets do Zammad"
+                    />
+                </div>
             </div>
 
+            {!colapsado && (
             <div className="zammad-card">
                 {tickets.length === 0 ? (
-                    <div className="info-complementar-vazio">
-                        <Inbox size={22} />
-                        <p>Nenhum ticket encontrado</p>
-                    </div>
+                    <EmptyState
+                        icon={Ticket}
+                        title="Nenhum ticket encontrado"
+                        subtitle="Esse cliente ainda não abriu chamados no Zammad."
+                    />
                 ) : (
                     <div className="info-complementar-tabela-wrapper">
                         <table className="info-complementar-tabela zammad-tabela">
@@ -223,6 +236,7 @@ function TicketsZammad({ tickets = [] }) {
                     </div>
                 )}
             </div>
+            )}
         </section>
     );
 }

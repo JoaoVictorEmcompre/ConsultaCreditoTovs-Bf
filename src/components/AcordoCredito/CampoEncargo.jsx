@@ -1,4 +1,4 @@
-import {IoClose} from "react-icons/io5";
+import {LuX as X} from "react-icons/lu";
 import {LABELS_ENCARGO, ehJuros, ehValorMonetario, ehQuantidade} from "../../constants/encargos.js";
 import "./CampoEncargo.css";
 
@@ -56,7 +56,7 @@ export default function CampoEncargo({encargo, onAtualizar, onRemover}) {
                 onClick={() => onRemover(encargo.id)}
                 title="Remover"
             >
-                <IoClose size={18}/>
+                <X size={18}/>
             </button>
         </div>);
 }

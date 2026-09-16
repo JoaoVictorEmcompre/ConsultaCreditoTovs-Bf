@@ -120,13 +120,13 @@
 .selecao-header h3 {
     font-size: 0.9rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--color-gray-900);
     margin: 0;
 }
 
 .btn-selecionar-todas {
     font-size: 0.75rem;
-    color: #404040;
+    color: var(--color-gray-700);
     background: none;
     border: none;
     cursor: pointer;
@@ -138,14 +138,7 @@
 }
 
 .btn-selecionar-todas:hover {
-    background: #eaeaea;
-}
-
-.acordo-vazio {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    text-align: center;
-    padding: 1.5rem;
+    background: var(--color-gray-150);
 }
 
 .duplicatas-lista {
@@ -162,26 +155,26 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.65rem 0.85rem;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--color-gray-200);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s;
-    background: #fff;
+    background: var(--color-white);
 }
 
 .duplicata-check:hover {
-    background: #f8fafc;
+    background: var(--color-gray-50);
 }
 
 .duplicata-selecionada {
-    background: #e8e8e8;
-    border-color: #b6b6b6;
+    background: var(--color-gray-150);
+    border-color: var(--color-gray-400);
 }
 
 .duplicata-check input[type="checkbox"] {
     width: 16px;
     height: 16px;
-    accent-color: #919191;
+    accent-color: var(--color-accent);
     flex-shrink: 0;
 }
 
@@ -194,23 +187,23 @@
 }
 
 .duplicata-check-info code {
-    background: #f1f5f9;
+    background: var(--color-gray-100);
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
     font-size: 0.8rem;
-    color: #3a3a3a;
+    color: var(--color-gray-700);
     font-weight: 500;
 }
 
 .duplicata-check-parcela {
     font-size: 0.78rem;
-    color: #353539;
+    color: var(--color-gray-600);
 }
 
 .duplicata-check-valor {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #1e1e1e;
+    color: var(--color-gray-900);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
@@ -218,7 +211,7 @@
 .duplicata-check-atraso {
     font-size: 0.72rem;
     font-weight: 600;
-    color: #dc2626;
+    color: var(--color-error-dark);
     background: #fef2f2;
     padding: 0.15rem 0.45rem;
     border-radius: 10px;
@@ -228,7 +221,7 @@
 .duplicata-check-a-vencer {
     font-size: 0.72rem;
     font-weight: 600;
-    color: #2629dc;
+    color: var(--color-accent-dark);
     background: #f2f4fe;
     padding: 0.15rem 0.45rem;
     border-radius: 10px;
@@ -305,7 +298,7 @@
     align-items: center;
     gap: 1rem;
     font-size: 0.83rem;
-    color: #475569;
+    color: var(--color-gray-600);
     padding: 0.35rem 0;
 }
 
@@ -313,7 +306,7 @@
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-gray-900);
 }
 
 .resultado-total {
@@ -332,82 +325,6 @@
     font-weight: 600;
     color: var(--color-gray-700);
     margin-top: 0.35rem;
-}
-
-.acordo-acoes {
-    display: flex;
-    gap: 0.75rem;
-    border-top: 1px solid #e2e8f0;
-    padding-top: 1rem;
-    margin-top: 1.25rem;
-}
-
-.btn-preview {
-    flex: 1;
-    padding: 0.85rem 1rem;
-    background: var(--color-accent);
-    color: var(--color-white);
-    border: none;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-}
-
-.btn-preview:hover {
-    background: var(--color-accent-dark);
-    box-shadow: 0 4px 12px rgba(0, 132, 255, 0.3);
-    transform: translateY(-1px);
-}
-
-.btn-gerar-acordo {
-    flex: 1;
-    padding: 0.85rem 1rem;
-    background: var(--gradient-primary);
-    color: var(--color-white);
-    border: none;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-}
-
-.btn-gerar-acordo:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(61, 61, 61, 0.25);
-}
-
-.btn-gerar-acordo:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.btn-cancelar {
-    flex: 1;
-    padding: 0.85rem 1rem;
-    background: var(--color-gray-200);
-    color: var(--color-gray-900);
-    border: 1px solid var(--color-gray-300);
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-cancelar:hover {
-    background: var(--color-gray-300);
-    border-color: var(--color-gray-400);
 }
 
 .partes-wrapper {
@@ -454,7 +371,7 @@
 
 .parte-card-body {
     padding: 16px;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--color-gray-200);
 }
 
 .config-row-partes {
@@ -466,12 +383,12 @@
 .cpf-invalido-aviso {
     margin-left: 8px;
     font-size: 12px;
-    color: #dc2626;
+    color: var(--color-error);
     font-weight: 600;
 }
 
 .form-input-erro {
-    border-color: #dc2626 !important;
+    border-color: var(--color-error) !important;
 }
 
 .form-input-erro:focus {
@@ -484,7 +401,7 @@
 
 .documentos-descricao {
     font-size: 0.85rem;
-    color: #666;
+    color: var(--color-gray-500);
     margin: 0 0 1rem 0;
     line-height: 1.4;
 }
@@ -540,19 +457,18 @@
 .documento-nome {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #222;
+    color: var(--color-gray-900);
     margin: 0 0 0.2rem 0;
 }
 
 .documento-tipo {
     font-size: 0.8rem;
-    color: #888;
+    color: var(--color-gray-400);
     margin: 0;
 }
 
 .documento-arrow {
-    color: #848484;
-    font-size: 1.5rem;
+    color: var(--color-gray-400);
     flex-shrink: 0;
     transition: color 0.2s;
 }
@@ -593,10 +509,6 @@
         flex-wrap: wrap;
     }
 
-    .acordo-acoes {
-        flex-direction: column;
-    }
-
     .selecao-header {
         flex-direction: column;
         align-items: flex-start;
@@ -606,13 +518,13 @@
 .encargos-dinamicos {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
-    border-top: 2px solid #e8eef5;
+    border-top: 2px solid var(--color-gray-200);
 }
 
 .encargos-subtitle {
     font-size: 12px;
     font-weight: 700;
-    color: #4a5568;
+    color: var(--color-gray-600);
     margin: 0 0 1.2rem 0;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -641,7 +553,7 @@
     transform: translateY(-50%);
     font-size: 13px;
     font-weight: 700;
-    color: #718096;
+    color: var(--color-gray-500);
     pointer-events: none;
     letter-spacing: 0.5px;
 }

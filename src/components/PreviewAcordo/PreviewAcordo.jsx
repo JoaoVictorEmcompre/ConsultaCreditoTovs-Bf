@@ -3,10 +3,9 @@ import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import mammoth from "mammoth";
 import "./PreviewAcordo.css";
-import {HiOutlineExclamationCircle} from "react-icons/hi2";
 import DOMPurify from "dompurify"
-import {MdDescription, MdFolder, MdClose} from "react-icons/md";
-import {LiaFileDownloadSolid} from "react-icons/lia";
+import {LuCircleAlert as AlertCircle, LuFolderOpen as FolderOpen, LuX as X, LuDownload as Download, LuFileX as FileX} from "react-icons/lu";
+import EmptyState from "../common/EmptyState.jsx";
 
 function PreviewAcordo({aberto, onFechar, docBuffer, dadosBase, onGerarArquivo, gerando}) {
     const titulo = "Prévia — Confissão de Dívida";
@@ -90,7 +89,7 @@ function PreviewAcordo({aberto, onFechar, docBuffer, dadosBase, onGerarArquivo, 
 
                 <div className="preview-header">
                     <div className="preview-header-titulo">
-                        <MdFolder size={24}/>
+                        <FolderOpen size={24}/>
                         <span>{titulo}</span>
                         {!carregando && previewHtml && (
                             <span className="preview-badge-ok">Documento gerado</span>
@@ -102,7 +101,7 @@ function PreviewAcordo({aberto, onFechar, docBuffer, dadosBase, onGerarArquivo, 
                         onClick={onFechar}
                         aria-label="Fechar prévia"
                     >
-                        <MdClose size={24}/>
+                        <X size={24}/>
                     </button>
                 </div>
 
@@ -114,7 +113,7 @@ function PreviewAcordo({aberto, onFechar, docBuffer, dadosBase, onGerarArquivo, 
                         </div>
                     ) : erro ? (
                         <div className="preview-erro">
-                            <HiOutlineExclamationCircle size={20}/>
+                            <AlertCircle size={20}/>
                             <p>
                                 <strong>Erro:</strong> {erro}
                             </p>
@@ -127,9 +126,11 @@ function PreviewAcordo({aberto, onFechar, docBuffer, dadosBase, onGerarArquivo, 
                             />
                         </div>
                     ) : (
-                        <div className="preview-vazio-doc">
-                            <p>Nenhuma prévia disponível</p>
-                        </div>
+                        <EmptyState
+                            icon={FileX}
+                            title="Nenhuma prévia disponível"
+                            className="preview-vazio-doc"
+                        />
                     )}
                 </div>
 
@@ -144,7 +145,7 @@ function PreviewAcordo({aberto, onFechar, docBuffer, dadosBase, onGerarArquivo, 
                             disabled={!previewHtml || carregando}
                             onClick={onGerarArquivo}
                         >
-                            <LiaFileDownloadSolid size={24}/>
+                            <Download size={20}/>
                             {gerando ? "Gerando..." : "Baixar .docx"}
                         </button>
                     )}

@@ -1,5 +1,5 @@
 import { TIPOS_ENCARGO, LABELS_ENCARGO, ORDEM_ENCARGOS } from "../../constants/encargos.js";
-import { IoAdd } from "react-icons/io5";
+import { LuPlus as Plus } from "react-icons/lu";
 import "./MenuAdicionarEncargo.css";
 
 export default function MenuAdicionarEncargo({ encargosAdicionados, onAdicionar, aberto, onToggle }) {
@@ -18,7 +18,7 @@ export default function MenuAdicionarEncargo({ encargosAdicionados, onAdicionar,
         className="btn-adicionar-encargo"
         onClick={onToggle}
       >
-        <IoAdd size={18} />
+        <Plus size={18} />
         <span>Adicionar Encargo</span>
       </button>
 

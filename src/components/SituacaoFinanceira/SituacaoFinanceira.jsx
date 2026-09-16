@@ -1,19 +1,22 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import "./SituacaoFinanceira.css";
 import { exportToCSV, exportToXLSX, exportToXLS, exportToPDF } from "../../utils/exportUtils.js";
+import EmptyState from "../common/EmptyState.jsx";
+import SectionCollapseButton from "../common/SectionCollapseButton.jsx";
 import {
-    Check,
-    Clock,
-    DollarSign,
-    AlertTriangle,
-    StopCircle,
-    XCircle,
-    ArrowUpDown,
-    ArrowUp,
-    ArrowDown,
-    ChevronDown,
-    Download,
-} from "lucide-react";
+    LuCheck as Check,
+    LuClock as Clock,
+    LuDollarSign as DollarSign,
+    LuTriangleAlert as AlertTriangle,
+    LuCircleStop as StopCircle,
+    LuCircleX as XCircle,
+    LuArrowUpDown as ArrowUpDown,
+    LuArrowUp as ArrowUp,
+    LuArrowDown as ArrowDown,
+    LuChevronDown as ChevronDown,
+    LuDownload as Download,
+    LuSearchX as SearchX,
+} from "react-icons/lu";
 
 function formatCurrency(value) {
     if (isNaN(value) || value === null || value === undefined) {
@@ -127,6 +130,7 @@ function SortIcon({ field, sortField, sortOrder }) {
 }
 
 function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
+    const [colapsado, setColapsado] = useState(false);
     const [sort, setSort] = useState({ field: "dataVencimento", order: "asc" });
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStatuses, setSelectedStatuses] = useState([]);
@@ -328,9 +332,18 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                     <DollarSign size={20} />
                     <h2>Situação Financeira</h2>
                 </div>
-                <span className="record-count">{sorted.length} registros</span>
+                <div className="section-header-actions">
+                    <span className="record-count">{sorted.length} registros</span>
+                    <SectionCollapseButton
+                        colapsado={colapsado}
+                        onClick={() => setColapsado((v) => !v)}
+                        label="Situação Financeira"
+                    />
+                </div>
             </div>
 
+            {!colapsado && (
+            <>
             <div className="table-filters" ref={filterContainerRef}>
                 <input
                     type="text"
@@ -591,11 +604,23 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                 </div>
 
                 {sorted.length === 0 && (
-                    <div className="empty-state">
-                        <p>Nenhum registro encontrado com os filtros aplicados.</p>
-                    </div>
+                    duplicatas.length === 0 ? (
+                        <EmptyState
+                            icon={DollarSign}
+                            title="Nenhuma duplicata encontrada"
+                            subtitle="Esse cliente não possui duplicatas para o período consultado."
+                        />
+                    ) : (
+                        <EmptyState
+                            icon={SearchX}
+                            title="Nenhum registro encontrado"
+                            subtitle="Ajuste a busca ou os filtros de status para ver outros resultados."
+                        />
+                    )
                 )}
             </div>
+            </>
+            )}
         </section>
     );
 }

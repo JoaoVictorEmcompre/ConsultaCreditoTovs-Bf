@@ -1,8 +1,7 @@
 import {useState} from "react";
 import "./PainelAcao.css";
-import {HiOutlineArchiveBox, HiOutlinePencilSquare} from "react-icons/hi2";
-import {FaPhoneAlt, FaWhatsapp} from "react-icons/fa";
-import {MdEast} from "react-icons/md";
+import {LuArchive as Archive, LuSquarePen as SquarePen, LuPhone as Phone, LuMail as Mail} from "react-icons/lu";
+import {FaWhatsapp} from "react-icons/fa";
 
 function PainelAcao({onRegistrar}) {
     const [registro, setRegistro] = useState({
@@ -52,7 +51,7 @@ function PainelAcao({onRegistrar}) {
         <section className="painel-section">
             <div className="section-header">
                 <div className="section-title-group">
-                    <HiOutlinePencilSquare size={20}/>
+                    <SquarePen size={20}/>
                     <h2>Registrar Cobran&ccedil;a</h2>
                 </div>
             </div>
@@ -71,13 +70,13 @@ function PainelAcao({onRegistrar}) {
                                         onClick={() => handleChange("tipo", canal)}
                                     >
                                         {canal === "Ligação" && (
-                                            <FaPhoneAlt size={20}/>
+                                            <Phone size={20}/>
                                         )}
                                         {canal === "WhatsApp" && (
                                             <FaWhatsapp size={20}/>
                                         )}
                                         {canal === "E-mail" && (
-                                            <MdEast size={20}/>
+                                            <Mail size={20}/>
                                         )}
                                         {canal}
                                     </button>
@@ -172,7 +171,7 @@ function PainelAcao({onRegistrar}) {
                             className="btn-registrar"
                             disabled={!registro.resultado}
                         >
-                            <HiOutlineArchiveBox size={20}/>
+                            <Archive size={20}/>
                             Registrar Cobrança
                         </button>
                     </div>

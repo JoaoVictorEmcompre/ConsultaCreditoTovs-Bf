@@ -1,5 +1,8 @@
+import {useState} from "react";
 import "./InformacoesComplementares.css";
-import { FileText, Wallet, ShoppingBag, Undo2, CreditCard, Receipt, Inbox } from "lucide-react";
+import { LuFileText as FileText, LuWallet as Wallet, LuShoppingBag as ShoppingBag, LuUndo2 as Undo2, LuCreditCard as CreditCard, LuReceipt as Receipt } from "react-icons/lu";
+import EmptyState from "../common/EmptyState.jsx";
+import SectionCollapseButton from "../common/SectionCollapseButton.jsx";
 
 function formatCurrency(value) {
     if (isNaN(value) || value === null || value === undefined) {
@@ -66,10 +69,7 @@ function BlocoTabela({ icone, titulo, colunas, linhas, renderLinha }) {
             </div>
 
             {linhas.length === 0 ? (
-                <div className="info-complementar-vazio">
-                    <Inbox size={22} />
-                    <p>Nenhum registro encontrado</p>
-                </div>
+                <EmptyState title="Nenhum registro encontrado" />
             ) : (
                 <div className="info-complementar-tabela-wrapper">
                     <table className="info-complementar-tabela">
@@ -89,6 +89,8 @@ function BlocoTabela({ icone, titulo, colunas, linhas, renderLinha }) {
 }
 
 function InformacoesComplementares({ info }) {
+    const [colapsado, setColapsado] = useState(false);
+
     if (!info) return null;
 
     const { saldoCredev, notasVenda, notasDevolucao, titulosCredev, notasDebito } = info;
@@ -100,8 +102,17 @@ function InformacoesComplementares({ info }) {
                     <FileText size={20} />
                     <h2>Informações Complementares</h2>
                 </div>
+                <div className="section-header-actions">
+                    <SectionCollapseButton
+                        colapsado={colapsado}
+                        onClick={() => setColapsado((v) => !v)}
+                        label="Informações Complementares"
+                    />
+                </div>
             </div>
 
+            {!colapsado && (
+            <>
             <div className="info-complementar-saldo-card">
                 <div className="info-complementar-saldo-icon">
                     <Wallet size={20} />
@@ -202,6 +213,8 @@ function InformacoesComplementares({ info }) {
                     )}
                 />
             </div>
+            </>
+            )}
         </section>
     );
 }

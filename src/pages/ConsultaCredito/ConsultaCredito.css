@@ -42,6 +42,44 @@
     margin-top: 1.5rem;
 }
 
+.consulta-boas-vindas {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    text-align: center;
+    background: var(--color-white);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    padding: 4rem 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.consulta-boas-vindas-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--color-gray-100);
+    color: var(--color-accent);
+    margin-bottom: 0.4rem;
+}
+
+.consulta-boas-vindas h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-gray-900);
+}
+
+.consulta-boas-vindas p {
+    font-size: 0.88rem;
+    color: var(--color-gray-500);
+    max-width: 38ch;
+}
+
 .loading-screen {
     width: 100%;
     height: 100vh;

@@ -104,9 +104,9 @@
 }
 
 .canal-btn-active {
-    background: #eff6ff;
-    border-color: #3b82f6;
-    color: #1d4ed8;
+    background: rgba(0, 132, 255, 0.08);
+    border-color: var(--color-accent);
+    color: var(--color-accent-dark);
 }
 
 .painel-actions {
@@ -119,8 +119,8 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.6rem 1.25rem;
-    background: #1e3a5f;
-    color: #fff;
+    background: var(--color-secondary-dark);
+    color: var(--color-white);
     border: none;
     border-radius: 8px;
     font-size: 0.85rem;
@@ -130,11 +130,11 @@
 }
 
 .btn-registrar:hover {
-    background: #2d5a87;
+    background: var(--color-secondary-light);
 }
 
 .btn-registrar:disabled {
-    background: #94a3b8;
+    background: var(--color-gray-400);
     cursor: not-allowed;
 }
 

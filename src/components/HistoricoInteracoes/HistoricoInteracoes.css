@@ -3,9 +3,9 @@
 }
 
 .timeline-card {
-    background: #fff;
+    background: var(--color-white);
     border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-sm);
     padding: 1.25rem;
 }
 
@@ -56,7 +56,7 @@
 .timeline-line {
     width: 2px;
     flex: 1;
-    background: #e2e8f0;
+    background: var(--color-gray-200);
     min-height: 16px;
 }
 
@@ -71,11 +71,11 @@
 }
 
 .timeline-item-latest .timeline-content {
-    background: #f8fafc;
+    background: var(--color-gray-50);
     border-radius: 8px;
     padding: 0.85rem;
     margin-bottom: 0.5rem;
-    border-left: 3px solid #3b82f6;
+    border-left: 3px solid var(--color-accent);
 }
 
 .timeline-header-row {
@@ -97,17 +97,17 @@
 .timeline-date {
     font-size: 0.82rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--color-gray-900);
 }
 
 .timeline-hora {
     font-size: 0.75rem;
-    color: #64748b;
+    color: var(--color-gray-500);
 }
 
 .timeline-operador {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--color-gray-400);
     font-style: italic;
 }
 
@@ -121,27 +121,27 @@
 
 .resultado-acordo {
     background: #dcfce7;
-    color: #166534;
+    color: var(--color-success-dark);
 }
 
 .resultado-promessa {
     background: #e0f2fe;
-    color: #075985;
+    color: var(--color-info);
 }
 
 .resultado-contato {
-    background: #f1f5f9;
-    color: #475569;
+    background: var(--color-gray-100);
+    color: var(--color-gray-600);
 }
 
 .resultado-nao-atendeu {
     background: #fee2e2;
-    color: #991b1b;
+    color: var(--color-error-dark);
 }
 
 .timeline-observacao {
     font-size: 0.83rem;
-    color: #475569;
+    color: var(--color-gray-600);
     line-height: 1.5;
     margin: 0;
 }
@@ -153,7 +153,7 @@
     margin-top: 0.5rem;
     background: #f0fdf4;
     border: 1px solid #bbf7d0;
-    color: #166534;
+    color: var(--color-success-dark);
     padding: 0.35rem 0.7rem;
     border-radius: 6px;
     font-size: 0.78rem;

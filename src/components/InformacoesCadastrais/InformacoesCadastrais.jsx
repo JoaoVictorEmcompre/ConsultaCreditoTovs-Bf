@@ -1,12 +1,23 @@
+import {useState} from "react";
 import "./InformacoesCadastrais.css";
-import {CiUser, CiCalendarDate} from "react-icons/ci";
-import {MdBusiness, MdLocationOn, MdEmail} from "react-icons/md";
-import {FaWhatsapp, FaPhoneAlt} from "react-icons/fa";
-import {HiIdentification, HiOutlineDocumentText} from "react-icons/hi2";
-import {BsCalculator, BsCardChecklist} from "react-icons/bs";
+import SectionCollapseButton from "../common/SectionCollapseButton.jsx";
+import {
+    LuUser as User,
+    LuCalendar as Calendar,
+    LuBuilding2 as Building2,
+    LuMapPin as MapPin,
+    LuMail as Mail,
+    LuPhone as Phone,
+    LuIdCard as IdCard,
+    LuFileText as FileText,
+    LuCalculator as Calculator,
+    LuClipboardList as ClipboardList,
+    LuHash as Hash,
+} from "react-icons/lu";
+import {FaWhatsapp} from "react-icons/fa";
 
-function InfoItem({icon, label, value}) {
-    return (<div className="info-item">
+function InfoItem({icon, label, value, className = ""}) {
+    return (<div className={`info-item ${className}`.trim()}>
         <span className="info-icon">{icon}</span>
         <div className="info-text">
             <span className="info-label">{label}</span>
@@ -24,6 +35,8 @@ function StatusBadge({situacao}) {
 }
 
 function InformacoesCadastrais({dados, onAbrirSimulador, onAbrirAcordo, ipInterno}) {
+    const [colapsado, setColapsado] = useState(false);
+
     if (!dados) {
         return null;
     }
@@ -31,44 +44,58 @@ function InformacoesCadastrais({dados, onAbrirSimulador, onAbrirAcordo, ipIntern
     const whatsappNumero = (dados.whatsapp || "").replace(/\D/g, "");
     const whatsappUrl = whatsappNumero ? `https://wa.me/55${whatsappNumero}` : "#";
 
+    const documentoLabel = (dados.cnpj || "").replace(/\D/g, "").length === 11 ? "CPF" : "CNPJ";
+
 
     return (<section className="info-section">
         <div className="section-header">
             <div className="section-title-group">
-                <CiUser size={20}/>
+                <User size={20}/>
                 <h2>Informações Cadastrais</h2>
             </div>
             <div className="section-header-actions">
-                <StatusBadge situacao={dados.situacao}/>
+                <SectionCollapseButton
+                    colapsado={colapsado}
+                    onClick={() => setColapsado((v) => !v)}
+                    label="Informações Cadastrais"
+                />
             </div>
         </div>
 
+        {!colapsado && (
         <div className="info-card">
             <div className="info-card-highlight">
                 <div className="company-name">
                     <h3>{dados.razaoSocial}</h3>
                     <span className="nome-fantasia">{dados.nomeFantasia}</span>
                 </div>
+                <StatusBadge situacao={dados.situacao}/>
             </div>
 
             <div className="info-grid">
                 <InfoItem
-                    icon={<HiIdentification size={20}/>}
-                    label="CNPJ"
+                    icon={<IdCard size={20}/>}
+                    label={documentoLabel}
                     value={dados.cnpj}
                 />
                 <InfoItem
-                    icon={<BsCardChecklist size={20}/>}
+                    icon={<Hash size={20}/>}
+                    label="C&oacute;digo do Cliente"
+                    value={dados.codigoCliente}
+                />
+                <InfoItem
+                    icon={<ClipboardList size={20}/>}
                     label="Inscri&ccedil;&atilde;o Estadual"
                     value={dados.inscricaoEstadual}
                 />
                 <InfoItem
-                    icon={<MdLocationOn size={20}/>}
+                    icon={<MapPin size={20}/>}
                     label="Endere&ccedil;o"
                     value={`${dados.rua}, ${dados.numero} - ${dados.bairro}, ${dados.cidade} - ${dados.estado}, ${dados.cep}`}
+                    className="info-item-full"
                 />
                 <InfoItem
-                    icon={<FaPhoneAlt size={20}/>}
+                    icon={<Phone size={20}/>}
                     label="Telefone Fixo"
                     value={dados.telefoneFixo}
                 />
@@ -78,17 +105,17 @@ function InformacoesCadastrais({dados, onAbrirSimulador, onAbrirAcordo, ipIntern
                     value={dados.whatsapp}
                 />
                 <InfoItem
-                    icon={<MdEmail size={20}/>}
+                    icon={<Mail size={20}/>}
                     label="E-mail"
                     value={dados.email}
                 />
                 <InfoItem
-                    icon={<MdBusiness size={20}/>}
+                    icon={<Building2 size={20}/>}
                     label="Divis&atilde;o de Neg&oacute;cios"
                     value={dados.divisaoNegocios}
                 />
                 <InfoItem
-                    icon={<CiCalendarDate size={20}/>}
+                    icon={<Calendar size={20}/>}
                     label="Data de Abertura"
                     value={dados.dataAbertura}
                 />
@@ -111,7 +138,7 @@ function InformacoesCadastrais({dados, onAbrirSimulador, onAbrirAcordo, ipIntern
                     className="acao-rapida-btn acao-email"
                     title="Enviar e-mail"
                 >
-                    <MdEmail size={20}/>
+                    <Mail size={20}/>
                     E-mail
                 </a>
                 <button
@@ -120,7 +147,7 @@ function InformacoesCadastrais({dados, onAbrirSimulador, onAbrirAcordo, ipIntern
                     onClick={onAbrirSimulador}
                     title="Simular acordo de negocia&ccedil;&atilde;o"
                 >
-                    <BsCalculator size={20}/>
+                    <Calculator size={20}/>
                     Simular Acordo
                 </button>
                 {ipInterno && (
@@ -130,13 +157,14 @@ function InformacoesCadastrais({dados, onAbrirSimulador, onAbrirAcordo, ipIntern
                         onClick={onAbrirAcordo}
                         title="Gerar acordo de cr&eacute;dito"
                     >
-                        <HiOutlineDocumentText size={20}/>
+                        <FileText size={20}/>
                         Acordo de Crédito
                     </button>
                 )}
 
             </div>
         </div>
+        )}
     </section>);
 }
 

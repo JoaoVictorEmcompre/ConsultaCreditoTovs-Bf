@@ -277,9 +277,11 @@ const validarDocumentosFilial6 = async (documents) => {
         respostaBrutaPorGrupo.set(chave, resultadosValidacao[index]);
     });
 
-    // A mesma fatura pode voltar vinculada a mais de um cliente. Não importa de
-    // quem é — se algum dos retornos estiver com problema (sem pagamento), é
-    // esse que vale pra linha normal, não o cliente que estamos consultando.
+    // A mesma fatura pode voltar vinculada a mais de um cliente — o card de
+    // validação (validacaoFilial6) mostra todos eles de propósito, pra servir de
+    // auditoria. Mas o valor que atualiza a linha normal da tabela só pode vir do
+    // MESMO cliente que estamos consultando — nunca de outro cliente que por acaso
+    // compartilha a mesma fatura/parcela nessa filial.
     const itensPorParcela = new Map();
     resultadosValidacao.forEach((resultado) => {
         resultado?.items?.forEach((item) => {
@@ -289,9 +291,14 @@ const validarDocumentosFilial6 = async (documents) => {
         });
     });
 
-    const escolherItemValidado = (itens) => {
+    const escolherItemValidado = (itens, doc) => {
         if (!itens || itens.length === 0) return null;
-        return itens.find((item) => !item.paymentDate) || itens[0];
+        if (doc.customerCode == null) return null;
+
+        const doMesmoCliente = itens.filter((item) => item.customerCode === doc.customerCode);
+        if (doMesmoCliente.length === 0) return null;
+
+        return doMesmoCliente.find((item) => !item.paymentDate) || doMesmoCliente[0];
     };
 
     const itemsAtualizados = documents.items.map((doc) => {
@@ -300,7 +307,7 @@ const validarDocumentosFilial6 = async (documents) => {
         const chaveGrupo = `${doc.receivableCode}|${doc.issueDate}`;
         const validacaoFilial6 = respostaBrutaPorGrupo.get(chaveGrupo) || null;
         const candidatos = itensPorParcela.get(`${doc.receivableCode}|${doc.installmentCode}`);
-        const validado = escolherItemValidado(candidatos);
+        const validado = escolherItemValidado(candidatos, doc);
 
         if (!validado) return {...doc, validacaoFilial6};
 

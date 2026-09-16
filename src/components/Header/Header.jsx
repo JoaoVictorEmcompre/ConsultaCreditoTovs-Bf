@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from "react";
 import "./Header.css";
 import logo from "../../assets/logobranca-bf.png";
 import {BRANCH_CODES} from "../../constants/branches.js";
-import {ChevronDown, Search} from "lucide-react";
+import {LuChevronDown as ChevronDown, LuSearch as Search} from "react-icons/lu";
 
 function Header({onSearch, redeInterna, cnpjInicial = ""}) {
     const [cnpj, setCnpj] = useState(cnpjInicial);

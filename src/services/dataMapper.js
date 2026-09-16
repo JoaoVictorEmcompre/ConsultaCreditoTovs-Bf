@@ -144,6 +144,7 @@ export const mapLegalEntityToDadosCadastrais = async (legalEntity) => {
         razaoSocial: legalEntity.name || "",
         nomeFantasia: legalEntity.fantasyName || "",
         cnpj: formatCnpj(legalEntity.cnpj || legalEntity.cpf),
+        codigoCliente: legalEntity.code || "",
         inscricaoEstadual: legalEntity.numberStateRegistration || "",
 
         rua: address?.address || "",

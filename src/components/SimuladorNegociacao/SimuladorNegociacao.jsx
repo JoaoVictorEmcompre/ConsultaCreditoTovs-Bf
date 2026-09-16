@@ -1,6 +1,7 @@
 import {useState, useMemo} from "react";
 import "./SimuladorNegociacao.css";
-import {HiOutlineDocumentText, HiOutlineXMark} from "react-icons/hi2";
+import {LuFileText as FileText, LuX as X} from "react-icons/lu";
+import EmptyState from "../common/EmptyState.jsx";
 
 function formatCurrency(value) {
     return value.toLocaleString("pt-BR", {
@@ -76,11 +77,11 @@ function SimuladorNegociacao({duplicatas, aberto, onFechar}) {
             <div className="simulador-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="simulador-header">
                     <div className="simulador-title-group">
-                        <HiOutlineDocumentText size={20}/>
+                        <FileText size={20}/>
                         <h2>Simulador de Negociação</h2>
                     </div>
                     <button className="simulador-fechar" onClick={onFechar}>
-                        <HiOutlineXMark size={20}/>
+                        <X size={20}/>
                     </button>
                 </div>
 
@@ -94,7 +95,11 @@ function SimuladorNegociacao({duplicatas, aberto, onFechar}) {
                         </div>
 
                         {duplicatasVencidas.length === 0 ? (
-                            <p className="simulador-vazio">Nenhuma duplicata vencida encontrada.</p>
+                            <EmptyState
+                                icon={FileText}
+                                title="Nenhuma duplicata vencida encontrada"
+                                subtitle="Esse cliente não possui duplicatas vencidas para simular."
+                            />
                         ) : (
                             <div className="duplicatas-lista">
                                 {duplicatasVencidas.map((dup) => (

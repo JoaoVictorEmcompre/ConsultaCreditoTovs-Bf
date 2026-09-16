@@ -9,9 +9,8 @@ import {VALORES_PADRAO, LABELS_ENCARGO, CAMPOS_FIXOS} from "../../constants/enca
 import CampoEncargo from "./CampoEncargo.jsx";
 import MenuAdicionarEncargo from "./MenuAdicionarEncargo.jsx";
 import "./AcordoCredito.css";
-import {HiOutlineDocumentText} from "react-icons/hi2";
-import {IoClose, IoDocumentText} from "react-icons/io5";
-import {MdExpandLess, MdExpandMore} from "react-icons/md";
+import EmptyState from "../common/EmptyState.jsx";
+import {LuFileText as FileText, LuX as X, LuChevronUp as ChevronUp, LuChevronDown as ChevronDown, LuChevronRight as ChevronRight} from "react-icons/lu";
 
 function formatCurrency(value) {
     return Number(value || 0).toLocaleString("pt-BR", {
@@ -483,7 +482,7 @@ function AcordoCredito({duplicatas, dadosCadastrais, aberto, onFechar}) {
                     onClick={() => toggleBloco(bloco)}
                 >
                     <span>{titulo}</span>
-                    <span>{abertoBloco ? <MdExpandLess/> : <MdExpandMore/>}</span>
+                    <span>{abertoBloco ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}</span>
                 </button>
 
                 {abertoBloco && (
@@ -584,11 +583,11 @@ function AcordoCredito({duplicatas, dadosCadastrais, aberto, onFechar}) {
             <div className="acordo-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="acordo-header">
                     <div className="acordo-title-group">
-                        <HiOutlineDocumentText size={20}/>
+                        <FileText size={20}/>
                         <h2>Acordo de Crédito</h2>
                     </div>
                     <button className="acordo-fechar" onClick={onFechar}>
-                        <IoClose size={20}/>
+                        <X size={20}/>
                     </button>
                 </div>
 
@@ -619,7 +618,11 @@ function AcordoCredito({duplicatas, dadosCadastrais, aberto, onFechar}) {
                                 </div>
 
                                 {duplicatasVencidas.length === 0 ? (
-                                    <p className="acordo-vazio">Nenhuma duplicata encontrada.</p>
+                                    <EmptyState
+                                        icon={FileText}
+                                        title="Nenhuma duplicata encontrada"
+                                        subtitle="Esse cliente não possui duplicatas vencidas para incluir no acordo."
+                                    />
                                 ) : (
                                     <div className="duplicatas-lista">
                                         {duplicatasVencidas.map((dup) => (
@@ -865,13 +868,13 @@ function AcordoCredito({duplicatas, dadosCadastrais, aberto, onFechar}) {
                                             onClick={() => handleSelecionarDocumento(modelo.nome)}
                                         >
                                             <div className="documento-icon">
-                                                <IoDocumentText size={24}/>
+                                                <FileText size={24}/>
                                             </div>
                                             <div className="documento-info">
                                                 <h4 className="documento-nome">{modelo.nome}</h4>
                                                 <p className="documento-tipo">{modelo.tipo}</p>
                                             </div>
-                                            <div className="documento-arrow">›</div>
+                                            <ChevronRight size={20} className="documento-arrow"/>
                                         </button>
                                     ))}
                                 </div>

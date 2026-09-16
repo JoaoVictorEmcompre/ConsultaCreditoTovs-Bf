@@ -96,8 +96,8 @@
 }
 
 .branch-select-trigger.has-warning {
-    border-color: #f87171;
-    background: rgba(248, 113, 113, 0.14);
+    border-color: var(--color-error);
+    background: rgba(220, 38, 38, 0.14);
 }
 
 .branch-select-warning {
@@ -106,7 +106,7 @@
     left: 0;
     min-width: max-content;
     background: #fef2f2;
-    color: #991b1b;
+    color: var(--color-error-dark);
     border: 1px solid #fecaca;
     border-radius: 8px;
     padding: 0.5rem 0.7rem;
