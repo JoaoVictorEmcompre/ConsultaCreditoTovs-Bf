@@ -242,11 +242,17 @@ export const mapFinancialBalanceToResumoCredito = (financialBalance, documents) 
 
     let totalLimitValue = 0;
     let totalOpenInvoiceValue = 0;
+    let totalRefundCreditValue = 0;
+    let totalAdvanceAmountValue = 0;
+    let totalInvoicesBehindScheduleValue = 0;
     let lastChangeLimitDate = null;
 
     values.forEach((v) => {
         totalLimitValue += v.limitValue || 0;
         totalOpenInvoiceValue += v.openInvoiceValue || 0;
+        totalRefundCreditValue += v.refundCreditValue || 0;
+        totalAdvanceAmountValue += v.advanceAmountValue || 0;
+        totalInvoicesBehindScheduleValue += v.invoicesBehindScheduleValue || 0;
 
         if (v.lastChangeLimitDate) {
             lastChangeLimitDate = v.lastChangeLimitDate;
@@ -281,6 +287,9 @@ export const mapFinancialBalanceToResumoCredito = (financialBalance, documents) 
         parcelasVencidas: parcelsOverdue,
         parcelasAVencer: parcelsDueDate,
         limiteDisponivel: totalLimitValue - totalOpenInvoiceValue,
+        saldoCredevEmAberto: totalRefundCreditValue,
+        antecipacaoEmAberto: totalAdvanceAmountValue,
+        faturasAtrasoAgendado: totalInvoicesBehindScheduleValue,
         prazoMedioCarteira: 0,
         prazoMedioFat60d: 0,
         prazoMedioAtraso12m: prazoMedioAtraso,

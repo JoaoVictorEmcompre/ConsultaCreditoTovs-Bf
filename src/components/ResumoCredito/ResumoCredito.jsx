@@ -1,15 +1,16 @@
 import "./ResumoCredito.css";
 import {
     BarChart3,
-    Wallet,
-    CreditCard as CreditCardIcon,
     AlertTriangle,
     Calendar,
-    ClipboardCheck,
     TimerReset,
     Clock,
     CircleAlert,
     Hourglass,
+    PiggyBank,
+    TrendingUp,
+    CalendarClock,
+    Banknote,
 } from "lucide-react";
 
 function formatCurrency(value) {
@@ -45,6 +46,7 @@ function ResumoCredito({resumo}) {
     const percentUtilizado = temLimite
         ? ((resumo.limiteCreditoUtilizado / resumo.limiteCreditoTotal) * 100).toFixed(1)
         : 0;
+    const totalEmAberto = resumo.parcelasVencidas + resumo.parcelasAVencer;
 
     return (
         <section className="resumo-section">
@@ -82,30 +84,21 @@ function ResumoCredito({resumo}) {
             <div className="resumo-grid">
 
                 <CreditCard
-                    variant="total"
+                    variant="credev"
                     icon={
-                        <Wallet size={20}/>
+                        <PiggyBank size={20}/>
                     }
-                    label="Limite de Cr&eacute;dito Total"
-                    value={formatCurrency(resumo.limiteCreditoTotal)}
+                    label="CREDEV em Aberto"
+                    value={formatCurrency(resumo.saldoCredevEmAberto)}
                 />
 
                 <CreditCard
-                    variant="utilizado"
+                    variant="antecipacao"
                     icon={
-                        <CreditCardIcon size={20}/>
+                        <TrendingUp size={20}/>
                     }
-                    label="Cr&eacute;dito Utilizado"
-                    value={formatCurrency(resumo.limiteCreditoUtilizado)}
-                />
-
-                <CreditCard
-                    variant="disponivel"
-                    icon={
-                        <Wallet size={20}/>
-                    }
-                    label="Limite Dispon&iacute;vel"
-                    value={formatCurrency(resumo.limiteDisponivel)}
+                    label="Antecipa&ccedil;&atilde;o em Aberto"
+                    value={formatCurrency(resumo.antecipacaoEmAberto)}
                 />
 
                 <CreditCard
@@ -127,12 +120,12 @@ function ResumoCredito({resumo}) {
                 />
 
                 <CreditCard
-                    variant="info"
+                    variant="total-aberto"
                     icon={
-                        <ClipboardCheck size={20}/>
+                        <Banknote size={20}/>
                     }
-                    label="&Uacute;ltima Revis&atilde;o de Cr&eacute;dito"
-                    value={resumo.dataUltimaRevisao}
+                    label="Total em Aberto"
+                    value={formatCurrency(totalEmAberto)}
                 />
 
                 <CreditCard
@@ -151,6 +144,15 @@ function ResumoCredito({resumo}) {
                     }
                     label="Média de Atraso (12m)"
                     value={`${resumo.prazoMedioAtraso12m} Dias`}
+                />
+
+                <CreditCard
+                    variant="info-neg"
+                    icon={
+                        <CalendarClock size={20}/>
+                    }
+                    label="Faturas em Atraso Agendadas"
+                    value={formatCurrency(resumo.faturasAtrasoAgendado)}
                 />
 
                 <CreditCard
