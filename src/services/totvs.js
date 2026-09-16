@@ -277,11 +277,10 @@ const validarDocumentosFilial6 = async (documents) => {
         respostaBrutaPorGrupo.set(chave, resultadosValidacao[index]);
     });
 
-    // A mesma fatura pode voltar vinculada a mais de um cliente — o card de
-    // validação (validacaoFilial6) mostra todos eles de propósito, pra servir de
-    // auditoria. Mas o valor que atualiza a linha normal da tabela só pode vir do
-    // MESMO cliente que estamos consultando — nunca de outro cliente que por acaso
-    // compartilha a mesma fatura/parcela nessa filial.
+    // A mesma fatura pode voltar vinculada a mais de um cliente. A linha normal da
+    // tabela é só um "resumo" — não importa de quem é o item retornado, se algum
+    // deles estiver em aberto/vencido, é esse que vale pra linha, nunca o cliente
+    // que estamos consultando escondendo um status pior de outro vínculo da mesma parcela.
     const itensPorParcela = new Map();
     resultadosValidacao.forEach((resultado) => {
         resultado?.items?.forEach((item) => {
@@ -291,14 +290,9 @@ const validarDocumentosFilial6 = async (documents) => {
         });
     });
 
-    const escolherItemValidado = (itens, doc) => {
+    const escolherItemValidado = (itens) => {
         if (!itens || itens.length === 0) return null;
-        if (doc.customerCode == null) return null;
-
-        const doMesmoCliente = itens.filter((item) => item.customerCode === doc.customerCode);
-        if (doMesmoCliente.length === 0) return null;
-
-        return doMesmoCliente.find((item) => !item.paymentDate) || doMesmoCliente[0];
+        return itens.find((item) => !item.paymentDate) || itens[0];
     };
 
     const itemsAtualizados = documents.items.map((doc) => {
@@ -307,13 +301,14 @@ const validarDocumentosFilial6 = async (documents) => {
         const chaveGrupo = `${doc.receivableCode}|${doc.issueDate}`;
         const validacaoFilial6 = respostaBrutaPorGrupo.get(chaveGrupo) || null;
         const candidatos = itensPorParcela.get(`${doc.receivableCode}|${doc.installmentCode}`);
-        const validado = escolherItemValidado(candidatos, doc);
+        const validado = escolherItemValidado(candidatos);
 
         if (!validado) return {...doc, validacaoFilial6};
 
         return {
             ...doc,
             installmentValue: validado.installmentValue,
+            discountValue: validado.discountValue,
             paidValue: validado.paidValue,
             issueDate: validado.issueDate,
             expiredDate: validado.expiredDate,

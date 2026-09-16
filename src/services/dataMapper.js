@@ -144,7 +144,7 @@ export const mapLegalEntityToDadosCadastrais = async (legalEntity) => {
         razaoSocial: legalEntity.name || "",
         nomeFantasia: legalEntity.fantasyName || "",
         cnpj: formatCnpj(legalEntity.cnpj || legalEntity.cpf),
-        codigoCliente: legalEntity.code || "",
+        codigoCliente: legalEntity.codeF || "",
         inscricaoEstadual: legalEntity.numberStateRegistration || "",
 
         rua: address?.address || "",
@@ -313,7 +313,8 @@ export const mapDocumentsToDuplicatas = (documents) => {
     return documents.items.map((doc) => {
         const totalParcelas = totalParcelasPorDuplicata[doc.receivableCode] || 1;
         const diasAtraso = diasAtrasoDocumento(doc);
-        const pagoParcialmente = Boolean(doc.paymentDate) && (doc.paidValue || 0) < (doc.installmentValue || 0);
+        const pagoParcialmente = Boolean(doc.paymentDate)
+            && (doc.paidValue || 0) < ((doc.installmentValue || 0) - (doc.discountValue || 0));
 
         const statusPagamento = (() => {
             if (doc.paymentDate) {
@@ -337,6 +338,7 @@ export const mapDocumentsToDuplicatas = (documents) => {
             fatura: doc.receivableCode?.toString() || "-",
             parcela: doc.installmentCode ? `${doc.installmentCode}/${totalParcelas}` : "",
             valor: doc.installmentValue || 0,
+            valorDesc: doc.discountValue || 0,
             valorPag: doc.paidValue || 0,
             dataEmissao: doc.issueDate
                 ? new Date(doc.issueDate).toLocaleDateString("pt-BR")
