@@ -355,57 +355,20 @@ export const searchDocuments = async (criterioCliente, branchCode) => {
     }
 };
 
-const formatDateISO = (date) => date.toISOString().slice(0, 10);
-
-const LOOKBACK_MESES_PADRAO = 24;
-
-// A busca por NF de venda e a de devolução não têm uma data "alvo" (são uma
-// visão geral do cliente, não de uma parcela específica) — olhar só os últimos
-// 6 meses a partir de hoje deixa de fora qualquer venda mais antiga. Usamos um
-// histórico maior (24 meses) como padrão.
-const janelaEmMeses = (meses) => {
-    const hoje = new Date();
-    const inicio = new Date(hoje);
-    inicio.setMonth(inicio.getMonth() - meses);
-
-    return {
-        startDate: formatDateISO(inicio),
-        endDate: formatDateISO(hoje),
-    };
-};
-
-// A API de notas fiscais só aceita até 6 meses por chamada, então pra cobrir um
-// histórico maior dividimos em janelas consecutivas de 6 meses.
-const janelasDeSeisMeses = (totalMeses) => {
-    const janelas = [];
-
-    for (let mesesAtras = 0; mesesAtras < totalMeses; mesesAtras += 6) {
-        const fim = new Date();
-        fim.setMonth(fim.getMonth() - mesesAtras);
-
-        const inicio = new Date();
-        inicio.setMonth(inicio.getMonth() - Math.min(mesesAtras + 6, totalMeses));
-
-        janelas.push({
-            startDate: formatDateISO(inicio),
-            endDate: formatDateISO(fim),
-        });
-    }
-
-    return janelas;
-};
-
+// NF de venda e NF de devolução não têm uma data "alvo" (são uma visão geral
+// do cliente, não de uma parcela específica), e a API não exige nenhum filtro
+// de data — só branchCodeList é obrigatório. Sem filtro de data a busca cobre
+// todo o histórico do cliente de uma vez, sem risco de cortar fora vendas/
+// devoluções antigas nem notas com issueDate nulo (que nunca bateriam com um
+// filtro de data, mesmo dentro da janela certa).
 export const searchSalesInvoice = async (cpfCnpj, branchCode) => {
     try {
-        const {startDate, endDate} = janelaEmMeses(LOOKBACK_MESES_PADRAO);
         const response = await makeRequest(
             "/api/totvsmoda/sales-order/v2/orders/search",
             {
                 filter: {
                     branchCodeList: Array.isArray(branchCode) ? branchCode : [branchCode],
                     customerCpfCnpjList: [cpfCnpj],
-                    startOrderDate: startDate,
-                    endOrderDate: endDate,
                 },
                 expand: "invoices",
                 page: 1,
@@ -425,46 +388,30 @@ export const searchSalesInvoice = async (cpfCnpj, branchCode) => {
 };
 
 export const searchReturnInvoices = async (cpfCnpj, branchCode) => {
-    const janelas = janelasDeSeisMeses(LOOKBACK_MESES_PADRAO);
-
-    const resultados = await Promise.allSettled(
-        janelas.map(async ({startDate, endDate}) => {
-            const response = await makeRequest(
-                "/api/totvsmoda/fiscal/v2/invoices/search",
-                {
-                    filter: {
-                        branchCodeList: Array.isArray(branchCode) ? branchCode : [branchCode],
-                        personCpfCnpjList: [cpfCnpj],
-                        operationType: "Input",
-                        startIssueDate: startDate,
-                        endIssueDate: endDate,
-                    },
-                    expand: "eletronic,referencedTaxInvoice",
-                    page: 1,
-                    pageSize: 100,
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`Search failed: ${response.statusText}`);
+    try {
+        const response = await makeRequest(
+            "/api/totvsmoda/fiscal/v2/invoices/search",
+            {
+                filter: {
+                    branchCodeList: Array.isArray(branchCode) ? branchCode : [branchCode],
+                    personCpfCnpjList: [cpfCnpj],
+                    operationType: "Input",
+                },
+                expand: "eletronic,referencedTaxInvoice",
+                page: 1,
+                pageSize: 100,
             }
+        );
 
-            return response.json();
-        })
-    );
+        if (!response.ok) {
+            throw new Error(`Search failed: ${response.statusText}`);
+        }
 
-    // Uma janela falhando (ex.: instabilidade pontual) não derruba as outras —
-    // junta o que cada uma conseguiu trazer.
-    const items = resultados
-        .filter((resultado) => resultado.status === "fulfilled")
-        .flatMap((resultado) => resultado.value.items || []);
-
-    if (items.length === 0 && resultados.every((resultado) => resultado.status === "rejected")) {
-        console.error("Erro ao buscar NF de devolução:", resultados[0].reason);
-        throw resultados[0].reason;
+        return await response.json();
+    } catch (error) {
+        console.error("Erro ao buscar NF de devolução:", error);
+        throw error;
     }
-
-    return {items};
 };
 
 const searchDocumentsByType = async (cpfCnpj, branchCode, documentTypeList) => {

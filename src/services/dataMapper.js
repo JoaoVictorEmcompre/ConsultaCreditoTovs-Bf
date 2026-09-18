@@ -58,6 +58,16 @@ const formatDate = (dateString) => {
     }
 };
 
+// Compara em centavos (arredondado) pra não cair em erro de ponto flutuante
+// — ex: 290.60 - 35.23 pode virar 255.36999999999998 em JS e marcar como
+// "Pago Parcialmente" uma parcela que na verdade já foi liquidada certinho.
+const pagoParcialmente = (doc) => {
+    const valorLiquidado = (doc.paidValue || 0) + (doc.discountValue || 0);
+    const centavosLiquidado = Math.round(valorLiquidado * 100);
+    const centavosParcela = Math.round((doc.installmentValue || 0) * 100);
+    return centavosLiquidado < centavosParcela;
+};
+
 const diffEmDias = (dataMaisRecente, dataMaisAntiga) => {
     const recente = new Date(dataMaisRecente);
     recente.setHours(0, 0, 0, 0);
@@ -144,7 +154,7 @@ export const mapLegalEntityToDadosCadastrais = async (legalEntity) => {
         razaoSocial: legalEntity.name || "",
         nomeFantasia: legalEntity.fantasyName || "",
         cnpj: formatCnpj(legalEntity.cnpj || legalEntity.cpf),
-        codigoCliente: legalEntity.codeF || "",
+        codigoCliente: legalEntity.code || "",
         inscricaoEstadual: legalEntity.numberStateRegistration || "",
 
         rua: address?.address || "",
@@ -235,6 +245,64 @@ const countDueTitles = (documents) => {
     }).length;
 };
 
+// status 1 = Normal; 2 = Devolvido, 3 = Cancelado, 4 = Quebrada. Qualquer
+// status diferente de Normal sai das contagens/somas dos cards do Resumo de
+// Crédito — só título "normal" representa risco de crédito real.
+const documentoEhNormal = (doc) => doc.status == null || doc.status === 1;
+
+const STATUS_ESPECIAL_LABEL = {
+    2: "Devolvido",
+    3: "Cancelado",
+    4: "Quebrada",
+};
+
+const statusEspecial = (status) => STATUS_ESPECIAL_LABEL[status] || null;
+
+const chaveGrupoFaturaFilial6 = (doc) => `${doc.receivableCode}|${doc.issueDate}`;
+
+// Compara um vínculo retornado pela validação da filial 6 com o doc original
+// (esse original já vem filtrado pelo cliente que estamos consultando).
+const ehVinculoDoClientePesquisado = (item, doc) => {
+    if (doc.customerCode != null && item.customerCode != null) {
+        return item.customerCode === doc.customerCode;
+    }
+    return Boolean(doc.customerCpfCnpj) && item.customerCpfCnpj === doc.customerCpfCnpj;
+};
+
+// A filial 6 valida cada fatura sem filtrar por cliente, então o mesmo grupo
+// pode trazer vários vínculos (clientes) pra mesma fatura+data. Pra contagem
+// de vencidos/a vencer, cada vínculo pesa separado — é risco de crédito real,
+// mesmo que apareçam concentrados numa única fatura nossa. Sem achatar, cada
+// fatura da filial 6 só contaria 1 vez, escondendo vínculos vencidos extras.
+// O vínculo do próprio cliente pesquisado não entra nessa soma — só os
+// vínculos dos OUTROS clientes daquela fatura compartilhada contam pro risco.
+const achatarDocumentosParaAgregado = (documents) => {
+    if (!documents?.items) return [];
+
+    const gruposProcessados = new Set();
+    const achatados = [];
+
+    documents.items.forEach((doc) => {
+        if (doc.branchCode === 6 && doc.validacaoFilial6?.items?.length > 0) {
+            const chave = chaveGrupoFaturaFilial6(doc);
+            if (gruposProcessados.has(chave)) return;
+            gruposProcessados.add(chave);
+            const vinculosDeOutrosClientes = doc.validacaoFilial6.items.filter(
+                (item) => !ehVinculoDoClientePesquisado(item, doc)
+            );
+            // A exclusão só vale quando a fatura é compartilhada entre clientes
+            // diferentes. Se todo mundo ali é o próprio cliente pesquisado (0
+            // vínculos de outros), não tem "outro" pra representar o risco —
+            // conta normalmente os vínculos dele mesmo, não descarta a fatura.
+            achatados.push(...(vinculosDeOutrosClientes.length > 0 ? vinculosDeOutrosClientes : doc.validacaoFilial6.items));
+            return;
+        }
+        achatados.push(doc);
+    });
+
+    return achatados.filter(documentoEhNormal);
+};
+
 export const mapFinancialBalanceToResumoCredito = (financialBalance, documents) => {
     if (!financialBalance || !financialBalance.items?.[0]) return null;
 
@@ -245,7 +313,6 @@ export const mapFinancialBalanceToResumoCredito = (financialBalance, documents) 
     let totalOpenInvoiceValue = 0;
     let totalRefundCreditValue = 0;
     let totalAdvanceAmountValue = 0;
-    let totalInvoicesBehindScheduleValue = 0;
     let lastChangeLimitDate = null;
 
     values.forEach((v) => {
@@ -253,21 +320,30 @@ export const mapFinancialBalanceToResumoCredito = (financialBalance, documents) 
         totalOpenInvoiceValue += v.openInvoiceValue || 0;
         totalRefundCreditValue += v.refundCreditValue || 0;
         totalAdvanceAmountValue += v.advanceAmountValue || 0;
-        totalInvoicesBehindScheduleValue += v.invoicesBehindScheduleValue || 0;
 
         if (v.lastChangeLimitDate) {
             lastChangeLimitDate = v.lastChangeLimitDate;
         }
     });
 
-    const parcelsData = documents?.items || [];
+    const parcelsData = achatarDocumentosParaAgregado(documents);
     let parcelsOverdue = 0;
     let parcelsDueDate = 0;
+    let totalDesconto = 0;
 
     parcelsData.forEach((doc) => {
-        const saldoDevedor = (doc.installmentValue || 0) - (doc.paidValue || 0);
+        totalDesconto += doc.discountValue || 0;
 
-        if (saldoDevedor > 0) {
+        // Sem descontar discountValue, uma parcela já liquidada (pago + desconto
+        // = parcela) sobra com um "saldo devedor" fantasma do tamanho do desconto,
+        // e entra em Parcelas Vencidas/A Vencer mesmo já estando paga.
+        const saldoDevedorCentavos = Math.round(
+            ((doc.installmentValue || 0) - (doc.paidValue || 0) - (doc.discountValue || 0)) * 100
+        );
+
+        if (saldoDevedorCentavos > 0) {
+            const saldoDevedor = saldoDevedorCentavos / 100;
+
             if (new Date(doc.expiredDate) < new Date()) {
                 parcelsOverdue += saldoDevedor;
             } else {
@@ -290,7 +366,7 @@ export const mapFinancialBalanceToResumoCredito = (financialBalance, documents) 
         limiteDisponivel: totalLimitValue - totalOpenInvoiceValue,
         saldoCredevEmAberto: totalRefundCreditValue,
         antecipacaoEmAberto: totalAdvanceAmountValue,
-        faturasAtrasoAgendado: totalInvoicesBehindScheduleValue,
+        totalDesconto,
         prazoMedioCarteira: 0,
         prazoMedioFat60d: 0,
         prazoMedioAtraso12m: prazoMedioAtraso,
@@ -312,13 +388,14 @@ export const mapDocumentsToDuplicatas = (documents) => {
 
     return documents.items.map((doc) => {
         const totalParcelas = totalParcelasPorDuplicata[doc.receivableCode] || 1;
-        const diasAtraso = diasAtrasoDocumento(doc);
-        const pagoParcialmente = Boolean(doc.paymentDate)
-            && (doc.paidValue || 0) < ((doc.installmentValue || 0) - (doc.discountValue || 0));
+        // Devolvido/Cancelado/Quebrada não representam mais um título em
+        // aberto correndo atraso, então não faz sentido calcular dias de atraso.
+        const diasAtraso = statusEspecial(doc.status) ? 0 : diasAtrasoDocumento(doc);
+        const ehPagoParcialmente = Boolean(doc.paymentDate) && pagoParcialmente(doc);
 
-        const statusPagamento = (() => {
+        const statusPagamento = statusEspecial(doc.status) || (() => {
             if (doc.paymentDate) {
-                if (pagoParcialmente) return "Pago Parcialmente";
+                if (ehPagoParcialmente) return "Pago Parcialmente";
                 return diasAtraso > 0 ? "Pago com Atraso" : "Pago";
             }
 
@@ -354,6 +431,8 @@ export const mapDocumentsToDuplicatas = (documents) => {
             conta: doc.bearerName || "",
             filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
             validacaoFilial6: doc.validacaoFilial6 || null,
+            customerCode: doc.customerCode ?? null,
+            customerCpfCnpj: doc.customerCpfCnpj || "",
         };
     });
 };
@@ -429,6 +508,7 @@ export const mapDocumentsToCredevTitulos = (documents) => {
         valor: doc.installmentValue || 0,
         dataEmissao: doc.issueDate ? new Date(doc.issueDate).toLocaleDateString("pt-BR") : "-",
         statusBaixa: descreverBaixaCredev(doc.dischargeType),
+        portador: doc.bearerName || "-",
         filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
     }));
 };
@@ -442,8 +522,8 @@ export const mapDocumentsToNotasDebito = (documents) => {
         valor: doc.installmentValue || 0,
         dataEmissao: doc.issueDate ? new Date(doc.issueDate).toLocaleDateString("pt-BR") : "-",
         dataVencimento: doc.expiredDate ? new Date(doc.expiredDate).toLocaleDateString("pt-BR") : "-",
-        diasAtraso: diasAtrasoDocumento(doc),
-        filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
+        status: doc.status || "-",
+        portador: doc.bearerName || "-",
     }));
 };
 

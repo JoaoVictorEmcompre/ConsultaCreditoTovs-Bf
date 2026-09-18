@@ -1,4 +1,4 @@
-import {useState} from "react";
+import { useState } from "react";
 import "./InformacoesComplementares.css";
 import { LuFileText as FileText, LuWallet as Wallet, LuShoppingBag as ShoppingBag, LuUndo2 as Undo2, LuCreditCard as CreditCard, LuReceipt as Receipt } from "react-icons/lu";
 import EmptyState from "../common/EmptyState.jsx";
@@ -91,6 +91,22 @@ function BlocoTabela({ icone, titulo, colunas, linhas, renderLinha }) {
 function InformacoesComplementares({ info }) {
     const [colapsado, setColapsado] = useState(false);
 
+
+    const validaStatus = (status) => {
+        if (status === 1) {
+            return "Normal"
+        } else if (status === 2) {
+            return "Devolvido"
+        } else if (status === 3) {
+            return "Cancelado"
+        } else if (status === 4) {
+            return "Quebrada"
+        } else {
+            return "deu ruim"
+        }
+
+    }
+
     if (!info) return null;
 
     const { saldoCredev, notasVenda, notasDevolucao, titulosCredev, notasDebito } = info;
@@ -112,108 +128,104 @@ function InformacoesComplementares({ info }) {
             </div>
 
             {!colapsado && (
-            <>
-            <div className="info-complementar-saldo-card">
-                <div className="info-complementar-saldo-icon">
-                    <Wallet size={20} />
-                </div>
-                <div className="info-complementar-saldo-texto">
-                    <span className="info-complementar-saldo-label">Saldo CREDEV</span>
-                    <span className="info-complementar-saldo-valor">
-                        {saldoCredev ? formatSaldo(saldoCredev.total) : "---"}
-                    </span>
-                </div>
-                {saldoCredev?.porFilial?.length > 0 && (
-                    <div className="info-complementar-saldo-filiais">
-                        {saldoCredev.porFilial.map((item) => (
-                            <span key={item.filial} className="info-complementar-saldo-filial">
-                                <strong>{item.filial}</strong> {formatSaldo(item.saldo)}
+                <>
+                    <div className="info-complementar-saldo-card">
+                        <div className="info-complementar-saldo-icon">
+                            <Wallet size={20} />
+                        </div>
+                        <div className="info-complementar-saldo-texto">
+                            <span className="info-complementar-saldo-label">Saldo CREDEV</span>
+                            <span className="info-complementar-saldo-valor">
+                                {saldoCredev ? formatSaldo(saldoCredev.total) : "---"}
                             </span>
-                        ))}
+                        </div>
+                        {saldoCredev?.porFilial?.length > 0 && (
+                            <div className="info-complementar-saldo-filiais">
+                                {saldoCredev.porFilial.map((item) => (
+                                    <span key={item.filial} className="info-complementar-saldo-filial">
+                                        <strong>{item.filial}</strong> {formatSaldo(item.saldo)}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
 
-            <div className="info-complementar-grid">
-                <BlocoTabela
-                    icone={ShoppingBag}
-                    titulo="NF de Venda / Pedido"
-                    colunas={["Pedido", "Pedido Marketplace", "Valor Total", "NF", "Representante", "Data"]}
-                    linhas={notasVenda}
-                    renderLinha={(item) => (
-                        <tr key={item.id}>
-                            <td><code>{item.pedido}</code></td>
-                            <td>{item.codigoMarketplace}</td>
-                            <td>R$ {item.valorTotal}</td>
-                            <td><code>{item.notaFiscal}</code></td>
-                            <td>{item.representante}</td>
-                            <td>{item.data}</td>
-                        </tr>
-                    )}
-                />
+                    <div className="info-complementar-grid">
+                        <BlocoTabela
+                            icone={ShoppingBag}
+                            titulo="NF de Venda / Pedido"
+                            colunas={["Pedido", "Pedido Marketplace", "Valor Total", "NF", "Representante", "Data"]}
+                            linhas={notasVenda}
+                            renderLinha={(item) => (
+                                <tr key={item.id}>
+                                    <td><code>{item.pedido}</code></td>
+                                    <td>{item.codigoMarketplace}</td>
+                                    <td>R$ {item.valorTotal}</td>
+                                    <td><code>{item.notaFiscal}</code></td>
+                                    <td>{item.representante}</td>
+                                    <td>{item.data}</td>
+                                </tr>
+                            )}
+                        />
 
-                <BlocoTabela
-                    icone={Undo2}
-                    titulo="NF de Devolução"
-                    colunas={["NF", "Operação", "Valor", "Emissão", "Status SEFAZ"]}
-                    linhas={notasDevolucao}
-                    renderLinha={(item) => (
-                        <tr key={item.id}>
-                            <td><code>{item.notaFiscal}</code></td>
-                            <td>{item.operacao}</td>
-                            <td>{formatCurrency(item.valor)}</td>
-                            <td>{item.emissao}</td>
-                            <td>
-                                <span className={pillClassSefaz(traduzStatusSefaz(item.statusSefaz))}>
-                                    {traduzStatusSefaz(item.statusSefaz)}
-                                </span>
-                            </td>
-                        </tr>
-                    )}
-                />
+                        <BlocoTabela
+                            icone={Undo2}
+                            titulo="NF de Devolução"
+                            colunas={["NF", "Operação", "Valor", "Emissão", "Status SEFAZ"]}
+                            linhas={notasDevolucao}
+                            renderLinha={(item) => (
+                                <tr key={item.id}>
+                                    <td><code>{item.notaFiscal}</code></td>
+                                    <td>{item.operacao}</td>
+                                    <td>{formatCurrency(item.valor)}</td>
+                                    <td>{item.emissao}</td>
+                                    <td>
+                                        <span className={pillClassSefaz(traduzStatusSefaz(item.statusSefaz))}>
+                                            {traduzStatusSefaz(item.statusSefaz)}
+                                        </span>
+                                    </td>
+                                </tr>
+                            )}
+                        />
 
-                <BlocoTabela
-                    icone={CreditCard}
-                    titulo="Títulos CREDEV"
-                    colunas={["Fatura", "Valor", "Emissão", "Baixa", "Filial"]}
-                    linhas={titulosCredev}
-                    renderLinha={(item) => (
-                        <tr key={item.id}>
-                            <td><code>{item.fatura}</code></td>
-                            <td>{formatCurrency(item.valor)}</td>
-                            <td>{item.dataEmissao}</td>
-                            <td>
-                                <span className={pillClassBaixa(item.statusBaixa)}>
-                                    {item.statusBaixa}
-                                </span>
-                            </td>
-                            <td>{item.filial}</td>
-                        </tr>
-                    )}
-                />
+                        <BlocoTabela
+                            icone={CreditCard}
+                            titulo="Títulos CREDEV"
+                            colunas={["Fatura", "Valor", "Emissão", "Baixa", "Portador"]}
+                            linhas={titulosCredev}
+                            renderLinha={(item) => (
+                                <tr key={item.id}>
+                                    <td><code>{item.fatura}</code></td>
+                                    <td>{formatCurrency(item.valor)}</td>
+                                    <td>{item.dataEmissao}</td>
+                                    <td>
+                                        <span className={pillClassBaixa(item.statusBaixa)}>
+                                            {item.statusBaixa}
+                                        </span>
+                                    </td>
+                                    <td>{item.portador}</td>
+                                </tr>
+                            )}
+                        />
 
-                <BlocoTabela
-                    icone={Receipt}
-                    titulo="Nota de Débito"
-                    colunas={["Fatura", "Valor", "Emissão", "Vencimento", "Dias Atraso", "Filial"]}
-                    linhas={notasDebito}
-                    renderLinha={(item) => (
-                        <tr key={item.id}>
-                            <td><code>{item.fatura}</code></td>
-                            <td>{formatCurrency(item.valor)}</td>
-                            <td>{item.dataEmissao}</td>
-                            <td>{item.dataVencimento}</td>
-                            <td>
-                                {item.diasAtraso > 0 ? (
-                                    <span className="info-pill info-pill-atencao">{item.diasAtraso}d</span>
-                                ) : "-"}
-                            </td>
-                            <td>{item.filial}</td>
-                        </tr>
-                    )}
-                />
-            </div>
-            </>
+                        <BlocoTabela
+                            icone={Receipt}
+                            titulo="Nota de Débito"
+                            colunas={["Fatura", "Valor", "Emissão", "Vencimento", "Status", "Portador"]}
+                            linhas={notasDebito}
+                            renderLinha={(item) => (
+                                <tr key={item.id}>
+                                    <td><code>{item.fatura}</code></td>
+                                    <td>{formatCurrency(item.valor)}</td>
+                                    <td>{item.dataEmissao}</td>
+                                    <td>{item.dataVencimento}</td>
+                                    <td>{validaStatus(item.status)}</td>
+                                    <td>{item.portador}</td>
+                                </tr>
+                            )}
+                        />
+                    </div>
+                </>
             )}
         </section>
     );

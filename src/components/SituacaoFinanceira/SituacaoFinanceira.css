@@ -129,8 +129,8 @@
 }
 
 .status-pago-atraso {
-    background: #fef3c7;
-    color: #92400e;
+    background: #dcfce7;
+    color: #166534;
 }
 
 .status-pago-parcial {
@@ -142,6 +142,26 @@
 .status-vence-hoje {
     background: #f9e0fe;
     color: #5b0785;
+}
+
+.status-em-aberto {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.status-devolvido {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-cancelado {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.status-quebrada {
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 .col-conta {
@@ -289,15 +309,16 @@
 .validacao-card-grid {
     display: flex;
     flex-wrap: wrap;
+    gap: 5rem;
 }
 
 .validacao-stat {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    flex: 1 1 130px;
-    min-width: 110px;
-    max-width: 220px;
+    gap: 0.25rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .validacao-stat .table-status {
@@ -411,11 +432,59 @@
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.06);
-    min-width: 180px;
+    width: max-content;
+    min-width: 220px;
+    max-width: min(320px, 90vw);
     z-index: 1000;
     display: flex;
     flex-direction: column;
     animation: slideDown 0.15s ease-out;
+}
+
+.filter-status-options {
+    display: flex;
+    flex-direction: column;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.filter-status-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.filter-status-reset,
+.filter-status-apply {
+    flex: 1;
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.filter-status-reset {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+}
+
+.filter-status-reset:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+}
+
+.filter-status-apply {
+    background: #3b82f6;
+    border: 1px solid #3b82f6;
+    color: #fff;
+}
+
+.filter-status-apply:hover {
+    background: #2563eb;
 }
 
 @keyframes slideDown {
@@ -455,6 +524,7 @@
 
 .status-checkbox span {
     flex: 1;
+    white-space: nowrap;
 }
 
 /* Export Button */

@@ -1,12 +1,13 @@
-import {useEffect, useRef, useState} from "react";
+import { useEffect, useRef, useState } from "react";
 import "./Header.css";
 import logo from "../../assets/logobranca-bf.png";
-import {BRANCH_CODES} from "../../constants/branches.js";
-import {LuChevronDown as ChevronDown, LuSearch as Search} from "react-icons/lu";
+import { BRANCH_CODES } from "../../constants/branches.js";
+import { INTERNAL_SEARCH_STORAGE_KEY } from "../../constants/storageKeys.js";
+import { LuChevronDown as ChevronDown, LuSearch as Search } from "react-icons/lu";
 
-function Header({onSearch, redeInterna, cnpjInicial = ""}) {
+function Header({ onSearch, redeInterna, cnpjInicial = "", branchCodeInicial = "" }) {
     const [cnpj, setCnpj] = useState(cnpjInicial);
-    const [branchCode, setBranchCode] = useState("");
+    const [branchCode, setBranchCode] = useState(branchCodeInicial);
     const [isBranchOpen, setIsBranchOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [avisoFilial, setAvisoFilial] = useState(false);
@@ -15,6 +16,10 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
     useEffect(() => {
         setCnpj(cnpjInicial);
     }, [cnpjInicial]);
+
+    useEffect(() => {
+        if (branchCodeInicial) setBranchCode(branchCodeInicial);
+    }, [branchCodeInicial]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -49,6 +54,14 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
 
         if (!cnpj.trim()) return;
 
+        // Guarda a última busca pra sobreviver a um F5 acidental — sem isso o
+        // usuário perde o cliente carregado e tem que procurar tudo de novo.
+        try {
+            sessionStorage.setItem(INTERNAL_SEARCH_STORAGE_KEY, JSON.stringify({ cnpj, branchCode }));
+        } catch {
+            // sessionStorage indisponível (ex.: modo privado) não deve travar a busca.
+        }
+
         setLoading(true);
         try {
             await onSearch(cnpj, branchCode);
@@ -68,7 +81,7 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
             <div className="header-content">
                 <div className="header-brand">
                     <div className="header-icon">
-                        <img src={logo} alt="Logo BF" className="header-logo" width="60" height="60"/>
+                        <img src={logo} alt="Logo BF" className="header-logo" width="60" height="60" />
                     </div>
 
                     <div>
@@ -122,7 +135,7 @@ function Header({onSearch, redeInterna, cnpjInicial = ""}) {
                         </div>
 
                         <div className="search-input-wrapper">
-                            <Search size={16} strokeWidth={2.75} className="search-icon"/>
+                            <Search size={16} strokeWidth={2.75} className="search-icon" />
                             <input
                                 type="text"
                                 className="search-input"

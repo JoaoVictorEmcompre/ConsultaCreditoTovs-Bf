@@ -5,8 +5,9 @@ import html2canvas from 'html2canvas';
 const COLUMNS = [
     {key: 'duplicata', label: 'Duplicata'},
     {key: 'fatura', label: 'Fatura'},
-    {key: 'parcela', label: 'Parcela'},
-    {key: 'valor', label: 'Valor'},
+    {key: 'qtdCobrancas', label: 'Qtd. Cobranças'},
+    {key: 'valor', label: 'Valor Total'},
+    {key: 'valorCobrado', label: 'Valor Cobrado'},
     {key: 'valorPag', label: 'Valor Pago'},
     {key: 'dataEmissao', label: 'Data Emissão'},
     {key: 'dataVencimento', label: 'Data Vencimento'},

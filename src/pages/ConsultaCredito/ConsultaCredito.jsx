@@ -34,6 +34,7 @@ import {
 import {pegarIP} from "../../services/pegarIP.js";
 import {isValidPermanentLogin, updateLastAccessDate, clearPermanentLogin} from "../../services/authService.js";
 import {DEFAULT_EXTERNAL_BRANCH_CODE} from "../../constants/branches.js";
+import {INTERNAL_SEARCH_STORAGE_KEY} from "../../constants/storageKeys.js";
 import "./ConsultaCredito.css";
 
 function limparCnpj(valor = "") {
@@ -96,6 +97,7 @@ function ConsultaCredito() {
     const [isRedeInterna, setIsRedeInterna] = useState(false);
     const [kExterno, setKExterno] = useState("");
     const [branchCodeAtual, setBranchCodeAtual] = useState(DEFAULT_EXTERNAL_BRANCH_CODE);
+    const [buscaInternaSalva, setBuscaInternaSalva] = useState(null);
 
     // Guarda a sequência da busca mais recente pra ignorar respostas de buscas
     // antigas que cheguem atrasadas — sem isso, se uma nova busca começar antes da
@@ -272,6 +274,17 @@ function ConsultaCredito() {
                 sessionStorage.setItem("ip-interno", ehInterno ? "true" : "false");
 
                 if (ehInterno) {
+                    // Recupera a última busca feita nessa aba — se o usuário
+                    // recarregar a página por acidente, o cliente não se perde.
+                    try {
+                        const salvo = JSON.parse(sessionStorage.getItem(INTERNAL_SEARCH_STORAGE_KEY) || "null");
+                        if (salvo?.cnpj && salvo?.branchCode) {
+                            setBuscaInternaSalva(salvo);
+                        }
+                    } catch {
+                        // dado corrompido no sessionStorage — segue sem restaurar.
+                    }
+
                     if (!login) {
                         if (isValidPermanentLogin()) {
                             sessionStorage.setItem("usuario-logado", "true");
@@ -332,6 +345,14 @@ function ConsultaCredito() {
         }
     }, [validandoAcesso, isRedeInterna, kExterno, handleSearch]);
 
+    useEffect(() => {
+        if (validandoAcesso) return;
+        if (!isRedeInterna) return;
+        if (!buscaInternaSalva) return;
+
+        handleSearch(buscaInternaSalva.cnpj, buscaInternaSalva.branchCode);
+    }, [validandoAcesso, isRedeInterna, buscaInternaSalva, handleSearch]);
+
     if (validandoAcesso) {
         return (
             <div className="loading-screen">
@@ -345,7 +366,8 @@ function ConsultaCredito() {
             <Header
                 onSearch={handleSearch}
                 redeInterna={isRedeInterna}
-                cnpjInicial=""
+                cnpjInicial={buscaInternaSalva?.cnpj || ""}
+                branchCodeInicial={buscaInternaSalva?.branchCode || ""}
             />
 
             <main className="consulta-content">
@@ -355,13 +377,12 @@ function ConsultaCredito() {
                     </div>
                 )}
 
-                {searching && (
-                    <div className="loading-banner">
-                        <p>Carregando dados...</p>
+                {searching ? (
+                    <div className="consulta-loading">
+                        <div className="spinner"></div>
+                        <p>Carregando dados do cliente...</p>
                     </div>
-                )}
-
-                {hasSearched ? (
+                ) : hasSearched ? (
                     <>
                         <InformacoesCadastrais
                             key={`cadastrais-${searchSeq}`}
@@ -371,7 +392,15 @@ function ConsultaCredito() {
                             ipInterno={isRedeInterna}
                         />
 
-                        <ResumoCredito key={`resumo-${searchSeq}`} resumo={currentResumoCredito}/>
+                        <ResumoCredito
+                            key={`resumo-${searchSeq}`}
+                            resumo={currentResumoCredito}
+                            notasVenda={currentInfoComplementar.notasVenda}
+                            notasDevolucao={currentInfoComplementar.notasDevolucao}
+                            titulosCredev={currentInfoComplementar.titulosCredev}
+                            notasDebito={currentInfoComplementar.notasDebito}
+                            ticketsZammad={currentTicketsZammad}
+                        />
                         <SituacaoFinanceira
                             key={`financeira-${searchSeq}`}
                             duplicatas={currentDuplicatas}
@@ -381,7 +410,7 @@ function ConsultaCredito() {
                         <TicketsZammad key={`zammad-${searchSeq}`} tickets={currentTicketsZammad}/>
                     </>
                 ) : (
-                    isRedeInterna && !searching && (
+                    isRedeInterna && (
                         <div className="consulta-boas-vindas">
                             <div className="consulta-boas-vindas-icon">
                                 <SearchCheck size={28}/>

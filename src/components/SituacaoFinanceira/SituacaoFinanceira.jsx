@@ -16,6 +16,8 @@ import {
     LuChevronDown as ChevronDown,
     LuDownload as Download,
     LuSearchX as SearchX,
+    LuCircleDot as CircleDot,
+    LuUndo2 as Undo2,
 } from "react-icons/lu";
 
 function formatCurrency(value) {
@@ -37,8 +39,35 @@ function formatDataBruta(dateStr) {
     return new Date(dateStr).toLocaleDateString("pt-BR");
 }
 
+// status 1 = Normal; qualquer outro (2 = Devolvido, 3 = Cancelado, 4 = Quebrada)
+// prevalece sobre o status de pagamento calculado.
+const STATUS_ESPECIAL_LABEL = {
+    2: "Devolvido",
+    3: "Cancelado",
+    4: "Quebrada",
+};
+
+function statusEspecial(status) {
+    return STATUS_ESPECIAL_LABEL[status] || null;
+}
+
+// Compara em centavos (arredondado) pra não cair em erro de ponto flutuante
+// — ex: 290.60 - 35.23 pode virar 255.36999999999998 em JS e marcar como
+// "Pago Parcialmente" uma parcela que na verdade já foi liquidada certinho.
+function ehPagoParcialmente(item) {
+    const valorLiquidado = (item.paidValue || 0) + (item.discountValue || 0);
+    const centavosLiquidado = Math.round(valorLiquidado * 100);
+    const centavosParcela = Math.round((item.installmentValue || 0) * 100);
+    return centavosLiquidado < centavosParcela;
+}
+
 function getStatusItemBruto(item) {
+    const especial = statusEspecial(item.status);
+    if (especial) return especial;
+
     if (item.paymentDate) {
+        if (ehPagoParcialmente(item)) return "Pago Parcialmente";
+
         const pago = new Date(item.paymentDate);
         pago.setHours(0, 0, 0, 0);
 
@@ -58,6 +87,171 @@ function getStatusItemBruto(item) {
 
     if (vencimento.getTime() === hoje.getTime()) return "Vence Hoje";
     return vencimento < hoje ? "Vencido" : "A Vencer";
+}
+
+function diasAtrasoBruto(item) {
+    const base = item.paymentDate ? new Date(item.paymentDate) : new Date();
+    base.setHours(0, 0, 0, 0);
+
+    const vencimento = new Date(item.expiredDate);
+    vencimento.setHours(0, 0, 0, 0);
+
+    return Math.max(Math.floor((base - vencimento) / 86400000), 0);
+}
+
+function normalizarDetalheParcela(dup) {
+    return {
+        id: dup.id,
+        clienteCodigo: null,
+        clienteDoc: "",
+        parcela: dup.parcela,
+        valor: dup.valor,
+        valorDesc: dup.valorDesc,
+        valorPag: dup.valorPag,
+        dataEmissao: dup.dataEmissao,
+        dataVencimento: dup.dataVencimento,
+        dataPagamento: dup.dataPagamento,
+        diasAtraso: dup.diasAtraso,
+        statusPagamento: dup.statusPagamento,
+        conta: dup.conta,
+    };
+}
+
+function normalizarDetalheVinculo(item, chave, index) {
+    return {
+        id: `${chave}-${item.installmentCode ?? index}-${item.customerCode ?? ""}`,
+        clienteCodigo: item.customerCode ?? null,
+        clienteDoc: item.customerCpfCnpj || "",
+        parcela: item.installmentCode ?? null,
+        valor: item.installmentValue || 0,
+        valorDesc: item.discountValue || 0,
+        valorPag: item.paidValue || 0,
+        dataEmissao: formatDataBruta(item.issueDate),
+        dataVencimento: formatDataBruta(item.expiredDate),
+        dataPagamento: item.paymentDate ? formatDataBruta(item.paymentDate) : null,
+        diasAtraso: statusEspecial(item.status) ? 0 : diasAtrasoBruto(item),
+        statusPagamento: getStatusItemBruto(item),
+        conta: item.bearerName || "",
+    };
+}
+
+// Do mais grave pro mais tranquilo — a linha-resumo da fatura assume o pior
+// status entre suas parcelas/vínculos, nunca escondendo algo vencido atrás
+// de uma parcela nossa que esteja em dia. Devolvido/Cancelado/Quebrada vêm
+// primeiro: é o status que a API retorna pro título e sempre prevalece sobre
+// o status de pagamento calculado.
+const STATUS_ESPECIAIS = ["Devolvido", "Cancelado", "Quebrada"];
+const PRIORIDADE_STATUS = [...STATUS_ESPECIAIS, "Vencido", "Vence Hoje", "A Vencer", "Pago Parcialmente", "Pago com Atraso", "Baixado com Atraso", "Pago", "Baixado"];
+
+// Cobranças que já tiveram algum pagamento lançado — usado pra somar o
+// "Valor Cobrado" da fatura (quanto do Valor Total já foi efetivamente cobrado).
+const STATUS_COBRADOS = ["Pago", "Pago com Atraso", "Pago Parcialmente", "Baixado", "Baixado com Atraso"];
+
+// Quando a cobrança é de OUTRO cliente (não o que estamos pesquisando), "Pago"/
+// "Pago com Atraso" não fazem sentido do ponto de vista desse cliente — quem
+// pagou foi o outro. Vira "Baixado"/"Baixado com Atraso": a fatura foi
+// liquidada, só que por outro vínculo. "Pago Parcialmente" não entra aqui
+// porque ainda tem saldo em aberto.
+const STATUS_BAIXADO_SE_OUTRO_CLIENTE = {
+    "Pago": "Baixado",
+    "Pago com Atraso": "Baixado com Atraso",
+};
+
+// A tabela mostra uma linha por FATURA, não por parcela — a validação da
+// filial 6 já retorna todos os vínculos/parcelas daquela fatura+data numa
+// busca só, então usamos ela como detalhe quando existir; pras demais
+// filiais, o detalhe são as próprias parcelas que vieram da busca principal.
+function agruparPorFatura(duplicatas) {
+    const grupos = new Map();
+
+    duplicatas.forEach((dup) => {
+        const chave = `${dup.filial}-${dup.fatura}`;
+        if (!grupos.has(chave)) grupos.set(chave, []);
+        grupos.get(chave).push(dup);
+    });
+
+    return Array.from(grupos.entries()).map(([chave, docsDaFatura]) => {
+        const dupReferencia = docsDaFatura[0];
+
+        // Entre as cobranças da mesma fatura compartilhada (filial 6), a do
+        // próprio cliente que estamos pesquisando aparece primeiro na lista.
+        const ehVinculoDoClientePesquisado = (item) => {
+            if (dupReferencia.customerCode != null && item.clienteCodigo != null) {
+                return item.clienteCodigo === dupReferencia.customerCode;
+            }
+            return Boolean(dupReferencia.customerCpfCnpj) && item.clienteDoc === dupReferencia.customerCpfCnpj;
+        };
+
+        // Cobrança de outro cliente que já foi paga não é "Pago" do ponto de
+        // vista de quem estamos pesquisando — vira "Baixado"/"Baixado com Atraso".
+        const aplicarBaixaSeOutroCliente = (item) => {
+            if (ehVinculoDoClientePesquisado(item)) return item;
+            const statusBaixado = STATUS_BAIXADO_SE_OUTRO_CLIENTE[item.statusPagamento];
+            if (!statusBaixado) return item;
+            return { ...item, statusPagamento: statusBaixado };
+        };
+
+        const ehFilial6ComVinculos = dupReferencia.validacaoFilial6?.items?.length > 0;
+
+        const detalhes = ehFilial6ComVinculos
+            ? dupReferencia.validacaoFilial6.items
+                .map((item, index) => normalizarDetalheVinculo(item, chave, index))
+                .map(aplicarBaixaSeOutroCliente)
+                .sort((a, b) => Number(ehVinculoDoClientePesquisado(b)) - Number(ehVinculoDoClientePesquisado(a)))
+            : docsDaFatura.map(normalizarDetalheParcela);
+
+        // Numa fatura compartilhada (filial 6) a linha de resumo representa o
+        // risco dos OUTROS clientes vinculados a ela — a cobrança do próprio
+        // cliente pesquisado não entra nas somas/status do resumo, só aparece
+        // no detalhe expandido. Sem nenhum vínculo de outro cliente, cai de
+        // volta pra somar todas as cobranças (não tem "outro" pra representar).
+        const outrosVinculos = ehFilial6ComVinculos
+            ? detalhes.filter((item) => !ehVinculoDoClientePesquisado(item))
+            : [];
+        const detalhesResumo = outrosVinculos.length > 0 ? outrosVinculos : detalhes;
+
+        const statusPorItem = detalhesResumo.map((item) => item.statusPagamento);
+        const statusMaisGrave = PRIORIDADE_STATUS.find((status) => statusPorItem.includes(status)) || "-";
+        const indiceReferencia = statusPorItem.indexOf(statusMaisGrave);
+        const itemReferencia = detalhesResumo[indiceReferencia >= 0 ? indiceReferencia : 0] || dupReferencia;
+
+        // Uma cobrança já quitada ao lado de outra ainda em aberto não é nem
+        // "Vencido" nem "Pago" — a fatura como um todo ainda tem saldo pendente,
+        // então isso vale mais que só apontar o status da pior cobrança.
+        const statusPagos = ["Pago", "Pago com Atraso", "Baixado", "Baixado com Atraso"];
+        const temPago = statusPorItem.some((status) => statusPagos.includes(status));
+        const temEmAberto = statusPorItem.some((status) => !statusPagos.includes(status));
+        const statusResumo = STATUS_ESPECIAIS.includes(statusMaisGrave)
+            ? statusMaisGrave
+            : (temPago && temEmAberto ? "Em Aberto" : statusMaisGrave);
+
+        const valorTotal = detalhesResumo.reduce((soma, item) => soma + (item.valor || 0), 0);
+        const valorCobradoTotal = detalhesResumo
+            .filter((item) => STATUS_COBRADOS.includes(item.statusPagamento))
+            .reduce((soma, item) => soma + (item.valor || 0), 0);
+        const valorDescTotal = detalhesResumo.reduce((soma, item) => soma + (item.valorDesc || 0), 0);
+        const valorPagTotal = detalhesResumo.reduce((soma, item) => soma + (item.valorPag || 0), 0);
+        const diasAtrasoResumo = Math.max(0, ...detalhesResumo.map((item) => item.diasAtraso || 0));
+
+        return {
+            id: chave,
+            duplicata: dupReferencia.duplicata,
+            fatura: dupReferencia.fatura,
+            filial: dupReferencia.filial,
+            qtdCobrancas: detalhes.length,
+            valor: valorTotal,
+            valorCobrado: valorCobradoTotal,
+            valorDesc: valorDescTotal,
+            valorPag: valorPagTotal,
+            dataEmissao: itemReferencia.dataEmissao,
+            dataVencimento: itemReferencia.dataVencimento,
+            dataPagamento: itemReferencia.dataPagamento,
+            diasAtraso: diasAtrasoResumo,
+            statusPagamento: statusResumo,
+            conta: itemReferencia.conta,
+            detalhes,
+        };
+    });
 }
 
 function parseDate(dateStr) {
@@ -84,6 +278,18 @@ function getStatusClass(status) {
             return "status-pago-parcial";
         case "Vence Hoje":
             return "status-vence-hoje";
+        case "Em Aberto":
+            return "status-em-aberto";
+        case "Devolvido":
+            return "status-devolvido";
+        case "Cancelado":
+            return "status-cancelado";
+        case "Quebrada":
+            return "status-quebrada";
+        case "Baixado":
+            return "status-pago";
+        case "Baixado com Atraso":
+            return "status-pago-atraso";
         default:
             return "";
     }
@@ -115,6 +321,30 @@ function getStatusIcon(status) {
             return (
                 <Clock size={16} />
             );
+        case "Em Aberto":
+            return (
+                <CircleDot size={16} />
+            );
+        case "Devolvido":
+            return (
+                <Undo2 size={16} />
+            );
+        case "Cancelado":
+            return (
+                <XCircle size={16} />
+            );
+        case "Quebrada":
+            return (
+                <AlertTriangle size={16} />
+            );
+        case "Baixado":
+            return (
+                <Check size={16} />
+            );
+        case "Baixado com Atraso":
+            return (
+                <AlertTriangle size={16} />
+            );
         default:
             return null;
     }
@@ -134,6 +364,7 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
     const [sort, setSort] = useState({ field: "dataVencimento", order: "asc" });
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStatuses, setSelectedStatuses] = useState([]);
+    const [statusPendente, setStatusPendente] = useState([]);
     const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
     const [isExportOpen, setIsExportOpen] = useState(false);
     const [linhasExpandidas, setLinhasExpandidas] = useState(new Set());
@@ -150,10 +381,12 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
         });
     };
 
+    const agrupadas = useMemo(() => agruparPorFatura(duplicatas), [duplicatas]);
+
     const allStatuses = useMemo(() => {
-        const statuses = new Set(duplicatas.map(d => d.statusPagamento));
+        const statuses = new Set(agrupadas.map(d => d.statusPagamento));
         return Array.from(statuses).sort();
-    }, [duplicatas]);
+    }, [agrupadas]);
 
     const filterContainerRef = useRef(null);
 
@@ -169,8 +402,11 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleStatusChange = (status) => {
-        setSelectedStatuses(prev =>
+    // O filtro só é aplicado de fato quando o usuário clica "Aplicar" — marcar
+    // um checkbox não reduz a tabela na hora, evita aquele "pulo" de tela a
+    // cada clique enquanto ainda tá combinando vários status.
+    const handleStatusPendenteChange = (status) => {
+        setStatusPendente(prev =>
             prev.includes(status)
                 ? prev.filter(s => s !== status)
                 : [...prev, status]
@@ -178,8 +414,20 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
     };
 
     const handleStatusFilterToggle = () => {
-        setIsStatusFilterOpen(!isStatusFilterOpen);
+        const abrindo = !isStatusFilterOpen;
+        if (abrindo) setStatusPendente(selectedStatuses);
+        setIsStatusFilterOpen(abrindo);
         setIsExportOpen(false);
+    };
+
+    const handleStatusApply = () => {
+        setSelectedStatuses(statusPendente);
+        setIsStatusFilterOpen(false);
+    };
+
+    const handleStatusReset = () => {
+        setStatusPendente([]);
+        setSelectedStatuses([]);
     };
 
     const handleExportToggle = () => {
@@ -188,14 +436,13 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
     };
 
     const filtered = useMemo(() => {
-        let result = [...duplicatas];
+        let result = [...agrupadas];
 
         if (searchTerm.trim()) {
             const search = searchTerm.toLowerCase();
             result = result.filter(d =>
                 d.duplicata.toLowerCase().includes(search) ||
-                d.fatura.toLowerCase().includes(search) ||
-                d.parcela.toLowerCase().includes(search)
+                d.fatura.toLowerCase().includes(search)
             );
         }
 
@@ -204,7 +451,7 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
         }
 
         return result;
-    }, [duplicatas, searchTerm, selectedStatuses]);
+    }, [agrupadas, searchTerm, selectedStatuses]);
 
     const sorted = useMemo(() => {
         let result = [...filtered];
@@ -220,6 +467,10 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                 case "valor":
                     aVal = a.valor;
                     bVal = b.valor;
+                    break;
+                case "valorCobrado":
+                    aVal = a.valorCobrado;
+                    bVal = b.valorCobrado;
                     break;
                 case "valorPag":
                     aVal = a.valorPag;
@@ -257,9 +508,9 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                     aVal = a.fatura;
                     bVal = b.fatura;
                     break;
-                case "parcela":
-                    aVal = a.parcela;
-                    bVal = b.parcela;
+                case "qtdCobrancas":
+                    aVal = a.qtdCobrancas;
+                    bVal = b.qtdCobrancas;
                     break;
                 default:
                     return 0;
@@ -290,8 +541,9 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
             ...(mostrarFilial && { filial: item.filial }),
             duplicata: item.duplicata,
             fatura: item.fatura,
-            parcela: item.parcela,
+            qtdCobrancas: item.qtdCobrancas,
             valor: formatCurrency(item.valor),
+            valorCobrado: formatCurrency(item.valorCobrado),
             valorPag: formatCurrency(item.valorPag),
             dataEmissao: item.dataEmissao,
             dataVencimento: item.dataVencimento,
@@ -347,7 +599,7 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                     <div className="table-filters" ref={filterContainerRef}>
                         <input
                             type="text"
-                            placeholder="Buscar Duplicata..."
+                            placeholder="Buscar Fatura..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="filter-search"
@@ -363,16 +615,34 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                             </button>
                             {isStatusFilterOpen && (
                                 <div className="filter-status-dropdown">
-                                    {allStatuses.map(status => (
-                                        <label key={status} className="status-checkbox">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedStatuses.includes(status)}
-                                                onChange={() => handleStatusChange(status)}
-                                            />
-                                            <span>{status}</span>
-                                        </label>
-                                    ))}
+                                    <div className="filter-status-options">
+                                        {allStatuses.map(status => (
+                                            <label key={status} className="status-checkbox">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={statusPendente.includes(status)}
+                                                    onChange={() => handleStatusPendenteChange(status)}
+                                                />
+                                                <span>{status}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <div className="filter-status-actions">
+                                        <button
+                                            type="button"
+                                            className="filter-status-reset"
+                                            onClick={handleStatusReset}
+                                        >
+                                            Redefinir
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="filter-status-apply"
+                                            onClick={handleStatusApply}
+                                        >
+                                            Aplicar
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -432,11 +702,14 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                                         <th className="col-center sortable" onClick={() => handleSortClick("fatura")}>
                                             Fatura <SortIcon field="fatura" sortField={sort.field} sortOrder={sort.order} />
                                         </th>
-                                        <th className="col-center sortable" onClick={() => handleSortClick("parcela")}>
-                                            Parcela <SortIcon field="parcela" sortField={sort.field} sortOrder={sort.order} />
+                                        <th className="col-center sortable" onClick={() => handleSortClick("qtdCobrancas")}>
+                                            Cobranças <SortIcon field="qtdCobrancas" sortField={sort.field} sortOrder={sort.order} />
                                         </th>
                                         <th className="col-center sortable" onClick={() => handleSortClick("valor")}>
-                                            Valor Parcela <SortIcon field="valor" sortField={sort.field} sortOrder={sort.order} />
+                                            Valor Total <SortIcon field="valor" sortField={sort.field} sortOrder={sort.order} />
+                                        </th>
+                                        <th className="col-center sortable" onClick={() => handleSortClick("valorCobrado")}>
+                                            Valor Cobrado <SortIcon field="valorCobrado" sortField={sort.field} sortOrder={sort.order} />
                                         </th>
                                         <th className="col-center sortable" onClick={() => handleSortClick("valorDesc")}>
                                             Valor Desconto <SortIcon field="valorDesc" sortField={sort.field} sortOrder={sort.order} />
@@ -468,9 +741,9 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                                 </thead>
                                 <tbody>
                                     {sorted.map((dup) => {
-                                        const podeExpandir = Boolean(dup.validacaoFilial6);
+                                        const podeExpandir = dup.detalhes.length > 0;
                                         const expandida = linhasExpandidas.has(dup.id);
-                                        const totalColunas = 11 + (mostrarFilial ? 1 : 0) + 1;
+                                        const totalColunas = 12 + (mostrarFilial ? 1 : 0) + 1;
 
                                         return (
                                             <Fragment key={dup.id}>
@@ -481,7 +754,7 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                                                                 type="button"
                                                                 className="row-expand-button"
                                                                 onClick={() => toggleExpandirLinha(dup.id)}
-                                                                aria-label="Ver dados da validação da filial 6"
+                                                                aria-label={`Ver cobranças da fatura ${dup.fatura}`}
                                                             >
                                                                 <ChevronDown
                                                                     size={15}
@@ -496,8 +769,9 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                                                     <td className="col-center col-fatura">
                                                         <code>{dup.fatura}</code>
                                                     </td>
-                                                    <td className="col-center">{dup.parcela}</td>
+                                                    <td className="col-center">{dup.qtdCobrancas}</td>
                                                     <td className="col-center col-valor">{formatCurrency(dup.valor)}</td>
+                                                    <td className="col-center col-valor">{formatCurrency(dup.valorCobrado)}</td>
                                                     <td className="col-center col-valor">{formatCurrency(dup.valorDesc)}</td>
                                                     <td className="col-center col-valor">{formatCurrency(dup.valorPag)}</td>
                                                     <td className="col-center">{dup.dataEmissao}</td>
@@ -523,77 +797,72 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                                                         <td colSpan={totalColunas}>
                                                             <div className="row-expand-content">
                                                                 <span className="row-expand-title">
-                                                                    Consulta pela fatura {dup.fatura} · emissão {dup.dataEmissao}
+                                                                    Cobranças da fatura {dup.fatura} · {dup.qtdCobrancas} {dup.qtdCobrancas === 1 ? "cobrança" : "cobranças"}
                                                                 </span>
-                                                                {dup.validacaoFilial6?.items?.length > 0 ? (
-                                                                    <div className="row-expand-cards">
-                                                                        {dup.validacaoFilial6.items.map((item, index) => {
-                                                                            const statusItem = getStatusItemBruto(item);
-
-                                                                            return (
-                                                                                <div
-                                                                                    key={`${item.customerCode}-${item.installmentCode}-${index}`}
-                                                                                    className="validacao-card"
-                                                                                >
-                                                                                    <div className="validacao-card-header">
-                                                                                        <div className="validacao-card-cliente">
-                                                                                            <span className="validacao-card-cliente-codigo">
-                                                                                                Cliente {item.customerCode}
-                                                                                            </span>
-                                                                                            {item.customerCpfCnpj && (
-                                                                                                <span className="validacao-card-cliente-doc">
-                                                                                                    {item.customerCpfCnpj}
-                                                                                                </span>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    </div>
-
-                                                                                    <div className="validacao-card-grid">
-                                                                                        <div className="validacao-stat">
-                                                                                            <span className="validacao-stat-label">Valor Parcela</span>
-                                                                                            <span className="validacao-stat-value">{formatCurrency(item.installmentValue)}</span>
-                                                                                        </div>
-                                                                                        <div className="validacao-stat">
-                                                                                            <span className="validacao-stat-label">Valor Desconto</span>
-                                                                                            <span className="validacao-stat-value">{formatCurrency(item.discountValue)}</span>
-                                                                                        </div>
-                                                                                        <div className="validacao-stat">
-                                                                                            <span className="validacao-stat-label">Valor Pago</span>
-                                                                                            <span className="validacao-stat-value">{formatCurrency(item.paidValue)}</span>
-                                                                                        </div>
-                                                                                        <div className="validacao-stat">
-                                                                                            <span className="validacao-stat-label">Emissão</span>
-                                                                                            <span className="validacao-stat-value">{formatDataBruta(item.issueDate)}</span>
-                                                                                        </div>
-                                                                                        <div className="validacao-stat">
-                                                                                            <span className="validacao-stat-label">Vencimento</span>
-                                                                                            <span className="validacao-stat-value">{formatDataBruta(item.expiredDate)}</span>
-                                                                                        </div>
-                                                                                        <div className="validacao-stat">
-                                                                                            <span className="validacao-stat-label">Pagamento</span>
-                                                                                            <span className="validacao-stat-value">{formatDataBruta(item.paymentDate)}</span>
-                                                                                        </div>
-                                                                                        <div className="validacao-stat">
-                                                                                            <span className="validacao-stat-label">Status</span>
-                                                                                            <span className={`table-status ${getStatusClass(statusItem)}`}>
-                                                                                                {getStatusIcon(statusItem)}
-                                                                                                {statusItem}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                        <div className="validacao-stat">
-                                                                                            <span className="validacao-stat-label">Conta</span>
-                                                                                            <span className="validacao-stat-value">{item.bearerName || "---"}</span>
-                                                                                        </div>
-                                                                                    </div>
+                                                                <div className="row-expand-cards">
+                                                                    {dup.detalhes.map((item) => (
+                                                                        <div key={item.id} className="validacao-card">
+                                                                            <div className="validacao-card-header">
+                                                                                <div className="validacao-card-cliente">
+                                                                                    <span className="validacao-card-cliente-codigo">
+                                                                                        {item.clienteCodigo
+                                                                                            ? `Cliente ${item.clienteCodigo}`
+                                                                                            : `Parcela ${item.parcela ?? "-"}`}
+                                                                                    </span>
+                                                                                    {item.clienteDoc && (
+                                                                                        <span className="validacao-card-cliente-doc">
+                                                                                            {item.clienteDoc}
+                                                                                        </span>
+                                                                                    )}
                                                                                 </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                ) : (
-                                                                    <p className="row-expand-empty">
-                                                                        Nenhum retorno pra essa fatura nessa data.
-                                                                    </p>
-                                                                )}
+                                                                            </div>
+
+                                                                            <div className="validacao-card-grid">
+                                                                                {item.clienteCodigo && (
+                                                                                    <div className="validacao-stat">
+                                                                                        <span className="validacao-stat-label">Parcela</span>
+                                                                                        <span className="validacao-stat-value">{item.parcela ?? "-"}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Valor Parcela</span>
+                                                                                    <span className="validacao-stat-value">{formatCurrency(item.valor)}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Valor Desconto</span>
+                                                                                    <span className="validacao-stat-value">{formatCurrency(item.valorDesc)}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Valor Pago</span>
+                                                                                    <span className="validacao-stat-value">{formatCurrency(item.valorPag)}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Emissão</span>
+                                                                                    <span className="validacao-stat-value">{item.dataEmissao || "---"}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Vencimento</span>
+                                                                                    <span className="validacao-stat-value">{item.dataVencimento || "---"}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Pagamento</span>
+                                                                                    <span className="validacao-stat-value">{item.dataPagamento || "---"}</span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Status</span>
+                                                                                    <span className={`table-status ${getStatusClass(item.statusPagamento)}`}>
+                                                                                        {getStatusIcon(item.statusPagamento)}
+                                                                                        {item.statusPagamento}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Conta</span>
+                                                                                    <span className="validacao-stat-value">{item.conta || "---"}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         </td>
                                                     </tr>

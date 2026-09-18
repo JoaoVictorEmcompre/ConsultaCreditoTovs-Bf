@@ -6,13 +6,18 @@ import {
     LuTriangleAlert as AlertTriangle,
     LuCalendar as Calendar,
     LuTimerReset as TimerReset,
+    LuTag as Tag,
     LuCircleAlert as CircleAlert,
     LuHourglass as Hourglass,
     LuPiggyBank as PiggyBank,
     LuTrendingUp as TrendingUp,
-    LuCalendarClock as CalendarClock,
     LuBanknote as Banknote,
     LuScale as Scale,
+    LuShoppingBag as ShoppingBag,
+    LuUndo2 as Undo2,
+    LuCreditCard as CreditCardIcon,
+    LuReceipt as Receipt,
+    LuTicket as Ticket,
 } from "react-icons/lu";
 
 function formatCurrency(value) {
@@ -48,7 +53,14 @@ function CreditCard({ icon, label, value, sublabel, variant = "default" }) {
     );
 }
 
-function ResumoCredito({ resumo }) {
+function ResumoCredito({
+    resumo,
+    notasVenda = [],
+    notasDevolucao = [],
+    titulosCredev = [],
+    notasDebito = [],
+    ticketsZammad = [],
+}) {
     const [colapsado, setColapsado] = useState(false);
 
     if (!resumo) {
@@ -64,6 +76,7 @@ function ResumoCredito({ resumo }) {
         ? ((resumo.limiteCreditoUtilizado / resumo.limiteCreditoTotal) * 100).toFixed(1)
         : 0;
     const totalEmAberto = resumo.parcelasVencidas + resumo.parcelasAVencer;
+    const notasDebitoOk = notasDebito.filter((nota) => nota.status === 1);
 
     return (
         <section className="resumo-section">
@@ -84,7 +97,8 @@ function ResumoCredito({ resumo }) {
 
             {!colapsado && (
                 <>
-                    <div className="credit-bar-container">
+                    {/* COMENTADO PARA RETIRAR A BARRA DE LIMITE DE CRÉDITO, POIS NÃO ESTÁ SENDO USADA NO MOMENTO, POREM PODE SER USADA A QUALQUER MOMENTO, ENTÃO MANTIVE O CÓDIGO COMENTADO PARA FUTURAMENTE PODER USAR NOVAMENTE.
+                        <div className="credit-bar-container">
                         <div className="credit-bar-labels">
                             <span>Utilizado: {formatCurrency(resumo.limiteCreditoUtilizado)}</span>
                             <span>Total: {formatCurrency(resumo.limiteCreditoTotal)}</span>
@@ -105,7 +119,7 @@ function ResumoCredito({ resumo }) {
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </div> */}
 
                     <div className="resumo-grid">
 
@@ -119,12 +133,12 @@ function ResumoCredito({ resumo }) {
                         />
 
                         <CreditCard
-                            variant="info-neg"
+                            variant="desconto"
                             icon={
-                                <CalendarClock size={20} />
+                                <Tag size={20} />
                             }
-                            label="Faturas em Atraso Agendadas"
-                            value={formatCurrency(resumo.faturasAtrasoAgendado)}
+                            label="Total de Desconto"
+                            value={formatCurrency(resumo.totalDesconto)}
                         />
 
                         <CreditCard
@@ -197,6 +211,51 @@ function ResumoCredito({ resumo }) {
                             }
                             label="Titulos à vencer"
                             value={`${resumo.pedidosAEntregar} Títulos`}
+                        />
+
+                        <CreditCard
+                            variant="nf-venda"
+                            icon={
+                                <ShoppingBag size={20} />
+                            }
+                            label="NF de Venda"
+                            value={`${notasVenda.length} NFs`}
+                        />
+
+                        <CreditCard
+                            variant="nf-devolucao"
+                            icon={
+                                <Undo2 size={20} />
+                            }
+                            label="NF de Devolu&ccedil;&atilde;o"
+                            value={`${notasDevolucao.length} NFs`}
+                        />
+
+                        <CreditCard
+                            variant="titulos-credev"
+                            icon={
+                                <CreditCardIcon size={20} />
+                            }
+                            label="T&iacute;tulos CREDEV"
+                            value={`${titulosCredev.length} Títulos`}
+                        />
+
+                        <CreditCard
+                            variant="notas-debito"
+                            icon={
+                                <Receipt size={20} />
+                            }
+                            label="Notas de D&eacute;bito"
+                            value={`${notasDebitoOk.length} Notas`}
+                        />
+
+                        <CreditCard
+                            variant="zammad"
+                            icon={
+                                <Ticket size={20} />
+                            }
+                            label="Tickets Zammad"
+                            value={`${ticketsZammad.length} Tickets`}
                         />
                     </div>
                 </>

@@ -164,6 +164,11 @@
     color: #dc2626;
 }
 
+.card-desconto .credit-card-icon {
+    background: #fef3c7;
+    color: #b45309;
+}
+
 .card-pedidos .credit-card-icon {
     background: #ede9fe;
     color: #7c3aed;
@@ -177,6 +182,31 @@
 .card-saldo .credit-card-icon {
     background: #ccfbf1;
     color: #0f766e;
+}
+
+.card-nf-venda .credit-card-icon {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.card-nf-devolucao .credit-card-icon {
+    background: #ffedd5;
+    color: #ea580c;
+}
+
+.card-titulos-credev .credit-card-icon {
+    background: #f3e8ff;
+    color: #9333ea;
+}
+
+.card-notas-debito .credit-card-icon {
+    background: #fce7f3;
+    color: #db2777;
+}
+
+.card-zammad .credit-card-icon {
+    background: #cffafe;
+    color: #0891b2;
 }
 
 @media (max-width: 1200px) {
