@@ -4,7 +4,7 @@
 }
 
 .consulta-content {
-    max-width: 1600px;
+    max-width: 70%;
     margin: 0 auto;
     padding: 1.5rem 2rem 3rem;
 }
@@ -107,6 +107,7 @@
     from {
         transform: rotate(0deg);
     }
+
     to {
         transform: rotate(360deg);
     }

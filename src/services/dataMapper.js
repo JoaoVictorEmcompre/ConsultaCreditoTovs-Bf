@@ -429,6 +429,7 @@ export const mapDocumentsToDuplicatas = (documents) => {
             diasAtraso,
             statusPagamento,
             conta: doc.bearerName || "",
+            documentType: doc.documentType ?? null,
             filial: doc.branchCode != null ? getBranchLabel(doc.branchCode) : "---",
             validacaoFilial6: doc.validacaoFilial6 || null,
             customerCode: doc.customerCode ?? null,

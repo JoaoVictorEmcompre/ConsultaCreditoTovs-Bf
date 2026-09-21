@@ -51,6 +51,23 @@ function statusEspecial(status) {
     return STATUS_ESPECIAL_LABEL[status] || null;
 }
 
+const DOCUMENT_TYPE_LABEL = {
+    1: "Fatura",
+    2: "Cheque",
+    3: "Dinheiro",
+    4: "Cartão de Crédito",
+    5: "Cartão de Débito",
+    6: "Nota de Débito",
+    10: "Adiantamento",
+};
+
+// Tipo desconhecido não é erro — a API pode trazer códigos novos que ainda não
+// mapeamos, então mostramos o número cru pra não esconder a informação do usuário.
+function traduzirTipoDocumento(documentType) {
+    if (documentType === null || documentType === undefined) return "---";
+    return DOCUMENT_TYPE_LABEL[documentType] || String(documentType);
+}
+
 // Compara em centavos (arredondado) pra não cair em erro de ponto flutuante
 // — ex: 290.60 - 35.23 pode virar 255.36999999999998 em JS e marcar como
 // "Pago Parcialmente" uma parcela que na verdade já foi liquidada certinho.
@@ -114,6 +131,7 @@ function normalizarDetalheParcela(dup) {
         diasAtraso: dup.diasAtraso,
         statusPagamento: dup.statusPagamento,
         conta: dup.conta,
+        tipoDocumento: traduzirTipoDocumento(dup.documentType),
     };
 }
 
@@ -132,6 +150,7 @@ function normalizarDetalheVinculo(item, chave, index) {
         diasAtraso: statusEspecial(item.status) ? 0 : diasAtrasoBruto(item),
         statusPagamento: getStatusItemBruto(item),
         conta: item.bearerName || "",
+        tipoDocumento: traduzirTipoDocumento(item.documentType),
     };
 }
 
@@ -249,6 +268,7 @@ function agruparPorFatura(duplicatas) {
             diasAtraso: diasAtrasoResumo,
             statusPagamento: statusResumo,
             conta: itemReferencia.conta,
+            tipoDocumento: itemReferencia.tipoDocumento,
             detalhes,
         };
     });
@@ -508,6 +528,10 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                     aVal = a.fatura;
                     bVal = b.fatura;
                     break;
+                case "tipoDocumento":
+                    aVal = a.tipoDocumento;
+                    bVal = b.tipoDocumento;
+                    break;
                 case "qtdCobrancas":
                     aVal = a.qtdCobrancas;
                     bVal = b.qtdCobrancas;
@@ -541,6 +565,7 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
             ...(mostrarFilial && { filial: item.filial }),
             duplicata: item.duplicata,
             fatura: item.fatura,
+            tipoDocumento: item.tipoDocumento,
             qtdCobrancas: item.qtdCobrancas,
             valor: formatCurrency(item.valor),
             valorCobrado: formatCurrency(item.valorCobrado),
@@ -702,6 +727,9 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                                         <th className="col-center sortable" onClick={() => handleSortClick("fatura")}>
                                             Fatura <SortIcon field="fatura" sortField={sort.field} sortOrder={sort.order} />
                                         </th>
+                                        <th className="col-center sortable" onClick={() => handleSortClick("tipoDocumento")}>
+                                            Tipo <SortIcon field="tipoDocumento" sortField={sort.field} sortOrder={sort.order} />
+                                        </th>
                                         <th className="col-center sortable" onClick={() => handleSortClick("qtdCobrancas")}>
                                             Cobranças <SortIcon field="qtdCobrancas" sortField={sort.field} sortOrder={sort.order} />
                                         </th>
@@ -743,7 +771,7 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                                     {sorted.map((dup) => {
                                         const podeExpandir = dup.detalhes.length > 0;
                                         const expandida = linhasExpandidas.has(dup.id);
-                                        const totalColunas = 12 + (mostrarFilial ? 1 : 0) + 1;
+                                        const totalColunas = 13 + (mostrarFilial ? 1 : 0) + 1;
 
                                         return (
                                             <Fragment key={dup.id}>
@@ -769,6 +797,7 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                                                     <td className="col-center col-fatura">
                                                         <code>{dup.fatura}</code>
                                                     </td>
+                                                    <td className="col-center">{dup.tipoDocumento}</td>
                                                     <td className="col-center">{dup.qtdCobrancas}</td>
                                                     <td className="col-center col-valor">{formatCurrency(dup.valor)}</td>
                                                     <td className="col-center col-valor">{formatCurrency(dup.valorCobrado)}</td>
@@ -824,6 +853,10 @@ function SituacaoFinanceira({ duplicatas, mostrarFilial = false }) {
                                                                                         <span className="validacao-stat-value">{item.parcela ?? "-"}</span>
                                                                                     </div>
                                                                                 )}
+                                                                                <div className="validacao-stat">
+                                                                                    <span className="validacao-stat-label">Tipo</span>
+                                                                                    <span className="validacao-stat-value">{item.tipoDocumento}</span>
+                                                                                </div>
                                                                                 <div className="validacao-stat">
                                                                                     <span className="validacao-stat-label">Valor Parcela</span>
                                                                                     <span className="validacao-stat-value">{formatCurrency(item.valor)}</span>
