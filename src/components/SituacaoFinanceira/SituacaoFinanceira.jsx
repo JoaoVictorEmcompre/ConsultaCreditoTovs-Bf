@@ -59,6 +59,7 @@ const DOCUMENT_TYPE_LABEL = {
     5: "Cartão de Débito",
     6: "Nota de Débito",
     10: "Adiantamento",
+    12: "DOFNI",
 };
 
 // Tipo desconhecido não é erro — a API pode trazer códigos novos que ainda não

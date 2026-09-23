@@ -55,6 +55,7 @@ function CreditCard({ icon, label, value, sublabel, variant = "default" }) {
 
 function ResumoCredito({
     resumo,
+    mostrarLimiteCredito = false,
     notasVenda = [],
     notasDevolucao = [],
     titulosCredev = [],
@@ -97,29 +98,39 @@ function ResumoCredito({
 
             {!colapsado && (
                 <>
-                    {/* COMENTADO PARA RETIRAR A BARRA DE LIMITE DE CRÉDITO, POIS NÃO ESTÁ SENDO USADA NO MOMENTO, POREM PODE SER USADA A QUALQUER MOMENTO, ENTÃO MANTIVE O CÓDIGO COMENTADO PARA FUTURAMENTE PODER USAR NOVAMENTE.
+                    {mostrarLimiteCredito && (
                         <div className="credit-bar-container">
-                        <div className="credit-bar-labels">
-                            <span>Utilizado: {formatCurrency(resumo.limiteCreditoUtilizado)}</span>
-                            <span>Total: {formatCurrency(resumo.limiteCreditoTotal)}</span>
+                            <div className="credit-bar-labels">
+                                <div className="credit-bar-metric">
+                                    <span>Utilizado:</span>
+                                    <strong>{formatCurrency(resumo.limiteCreditoUtilizado)}</strong>
+                                </div>
+                                <div className="credit-bar-metric credit-bar-metric-total">
+                                    <span>Total:</span>
+                                    <strong>{formatCurrency(resumo.limiteCreditoTotal)}</strong>
+                                </div>
+                            </div>
+                            {temLimite ? (
+                                <div className="credit-bar">
+                                    <div
+                                        className="credit-bar-fill"
+                                        style={{ width: `${Math.min(percentUtilizado, 100)}%` }}
+                                    >
+                                        <span className="credit-bar-text">{percentUtilizado}%</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="credit-bar credit-bar-disabled">
+                                    <div className="credit-bar-fill-disabled">
+                                        <span className="credit-bar-text-disabled">Cliente não possui limite disponível</span>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="credit-bar-review">
+                                <span>Última revisão: <strong>{resumo.dataUltimaRevisao}</strong></span>
+                            </div>
                         </div>
-                        {temLimite ? (
-                            <div className="credit-bar">
-                                <div
-                                    className="credit-bar-fill"
-                                    style={{ width: `${Math.min(percentUtilizado, 100)}%` }}
-                                >
-                                    <span className="credit-bar-text">{percentUtilizado}%</span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="credit-bar credit-bar-disabled">
-                                <div className="credit-bar-fill-disabled">
-                                    <span className="credit-bar-text-disabled">Cliente não possui limite disponível</span>
-                                </div>
-                            </div>
-                        )}
-                    </div> */}
+                    )}
 
                     <div className="resumo-grid">
 

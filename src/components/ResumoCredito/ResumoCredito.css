@@ -18,10 +18,44 @@
 .credit-bar-labels {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
     font-size: 0.78rem;
     color: var(--color-gray-600);
     margin-bottom: 0.5rem;
     font-weight: 500;
+}
+
+.credit-bar-metric {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.credit-bar-metric strong {
+    font-size: inherit;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.credit-bar-metric-total {
+    margin-left: auto;
+    text-align: right;
+}
+
+.credit-bar-review {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+    color: var(--color-gray-600);
+    font-size: 0.75rem;
+}
+
+.credit-bar-review strong {
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
 }
 
 .credit-bar {

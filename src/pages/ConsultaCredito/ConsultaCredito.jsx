@@ -395,6 +395,7 @@ function ConsultaCredito() {
                         <ResumoCredito
                             key={`resumo-${searchSeq}`}
                             resumo={currentResumoCredito}
+                            mostrarLimiteCredito={branchCodeAtual === 1}
                             notasVenda={currentInfoComplementar.notasVenda}
                             notasDevolucao={currentInfoComplementar.notasDevolucao}
                             titulosCredev={currentInfoComplementar.titulosCredev}
