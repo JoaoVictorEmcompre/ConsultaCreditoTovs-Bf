@@ -329,7 +329,9 @@ export const searchDocuments = async (criterioCliente, branchCode) => {
                     ...buildCustomerFilter(criterioCliente),
                     branchCodeList: Array.isArray(branchCode) ? branchCode : [branchCode],
                 },
-                expand: "check,invoice,commissioneds,calculateValue",
+                // A tela não usa a expansão de cheques; ela provoca ORA-00942
+                // na TOTVS para clientes com esses registros.
+                expand: "invoice,commissioneds,calculateValue",
                 page: 1,
                 pageSize: 100,
             }
