@@ -13,25 +13,31 @@ import react from '@vitejs/plugin-react-swc'
 // aplicação não tem autenticação de verdade (é uma SPA estática, servida em
 // URL pública), então expor a API inteira aqui daria a qualquer visitante
 // acesso de leitura a todos os tickets/clientes do Zammad usando a credencial
-// de serviço. Por isso só existem duas rotas, cada uma amarrada a um
-// CPF/CNPJ: buscar tickets desse CPF/CNPJ, e ler a conversa de um ticket
-// específico — mas só depois de revalidar que aquele ticket pertence mesmo
-// a esse CPF/CNPJ (senão bastaria adivinhar um id numérico pra ler o
-// atendimento de outro cliente).
+// de serviço. Por isso só existem três rotas, cada uma amarrada a um
+// CPF/CNPJ: buscar tickets desse CPF/CNPJ, ler a conversa de um ticket
+// específico e baixar um anexo dela — mas só depois de revalidar que aquele
+// ticket pertence mesmo a esse CPF/CNPJ (senão bastaria adivinhar um id
+// numérico pra ler o atendimento de outro cliente).
 function zammadProxyPlugin(env) {
     const zammadUrls = [env.VITE_ZAMMAD_URL, env.VITE_ZAMMAD_URL_2].filter(Boolean)
     const authHeader = 'Basic ' + Buffer.from(`${env.VITE_ZAMMAD_USER}:${env.VITE_ZAMMAD_PASSWORD}`).toString('base64')
 
     const CPF_CNPJ_RE = /^\d{11,14}$/
     const TICKET_ID_RE = /^\d{1,19}$/
+    // Só esses tipos podem abrir inline (prévia). Qualquer outro (html, svg...)
+    // sempre baixa — servir conteúdo enviado por terceiros inline, na nossa
+    // origem, abriria brecha de XSS.
+    const TIPOS_PREVIEW = /^(application\/pdf|image\/(png|jpe?g|gif|webp))$/i
 
-    const fetchZammad = async (path) => {
+    // Devolve a Response crua do primeiro Zammad que responder OK (fallback
+    // entre as duas URLs).
+    const fetchZammadRaw = async (path, accept = 'application/json') => {
         let ultimoErro = new Error('Nenhuma URL do Zammad configurada.')
 
         for (const baseUrl of zammadUrls) {
             try {
                 const upstream = await fetch(`${baseUrl}${path}`, {
-                    headers: {Authorization: authHeader, Accept: 'application/json'},
+                    headers: {Authorization: authHeader, Accept: accept},
                 })
 
                 if (!upstream.ok) {
@@ -39,7 +45,7 @@ function zammadProxyPlugin(env) {
                     continue
                 }
 
-                return await upstream.json()
+                return upstream
             } catch (error) {
                 ultimoErro = error
             }
@@ -47,6 +53,8 @@ function zammadProxyPlugin(env) {
 
         throw ultimoErro
     }
+
+    const fetchZammad = async (path) => (await fetchZammadRaw(path)).json()
 
     const buscarTicketsPorCpfCnpj = (cpfCnpj) =>
         fetchZammad(`/api/v1/tickets/search?query=${encodeURIComponent(`customer.login:${cpfCnpj}`)}&limit=20&expand=true`)
@@ -99,6 +107,70 @@ function zammadProxyPlugin(env) {
         }
     }
 
+    // Baixa um anexo. Além de o ticket ter que ser do CPF/CNPJ, o anexo tem que
+    // constar mesmo nas mensagens desse ticket — senão dava pra combinar ids
+    // arbitrários e baixar anexo de outro atendimento.
+    const handleTicketAttachment = async (searchParams, res) => {
+        const ticketId = searchParams.get('ticketId') || ''
+        const articleId = searchParams.get('articleId') || ''
+        const attachmentId = searchParams.get('attachmentId') || ''
+        const cpfCnpj = searchParams.get('cpf') || ''
+        const querPreview = searchParams.get('inline') === '1'
+
+        if (
+            !TICKET_ID_RE.test(ticketId) || !TICKET_ID_RE.test(articleId) ||
+            !TICKET_ID_RE.test(attachmentId) || !CPF_CNPJ_RE.test(cpfCnpj)
+        ) {
+            sendJson(res, 400, {error: 'Parâmetros inválidos.'})
+            return
+        }
+
+        try {
+            const ticketsDoCliente = await buscarTicketsPorCpfCnpj(cpfCnpj)
+            const pertenceAoCliente = Array.isArray(ticketsDoCliente) &&
+                ticketsDoCliente.some((ticket) => String(ticket.id) === ticketId)
+
+            if (!pertenceAoCliente) {
+                sendJson(res, 403, {error: 'Ticket não pertence a esse CPF/CNPJ.'})
+                return
+            }
+
+            const artigos = await fetchZammad(`/api/v1/ticket_articles/by_ticket/${ticketId}`)
+            const anexo = Array.isArray(artigos)
+                ? artigos
+                    .find((artigo) => String(artigo.id) === articleId)
+                    ?.attachments?.find((a) => String(a.id) === attachmentId)
+                : null
+
+            if (!anexo) {
+                sendJson(res, 404, {error: 'Anexo não encontrado nesse ticket.'})
+                return
+            }
+
+            const upstream = await fetchZammadRaw(
+                `/api/v1/ticket_attachment/${ticketId}/${articleId}/${attachmentId}?disposition=${querPreview ? 'inline' : 'attachment'}`,
+                '*/*'
+            )
+            const conteudo = Buffer.from(await upstream.arrayBuffer())
+            const nomeSeguro = String(anexo.filename || `anexo-${attachmentId}`).replace(/[\r\n"\\]/g, '_')
+
+            const contentType = (upstream.headers.get('content-type') || 'application/octet-stream').split(';')[0].trim()
+            const inline = querPreview && TIPOS_PREVIEW.test(contentType)
+
+            res.statusCode = 200
+            res.setHeader('Content-Type', contentType)
+            res.setHeader('Content-Length', conteudo.length)
+            res.setHeader(
+                'Content-Disposition',
+                `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(nomeSeguro)}`
+            )
+            res.setHeader('X-Content-Type-Options', 'nosniff')
+            res.end(conteudo)
+        } catch (error) {
+            sendJson(res, 502, {error: 'Zammad indisponível', detail: String(error)})
+        }
+    }
+
     const middleware = (req, res, next) => {
         if (req.method !== 'GET') return next()
 
@@ -116,6 +188,11 @@ function zammadProxyPlugin(env) {
 
         if (rota === '/ticket-articles') {
             handleTicketArticles(searchParams, res).catch(next)
+            return
+        }
+
+        if (rota === '/ticket-attachment') {
+            handleTicketAttachment(searchParams, res).catch(next)
             return
         }
 

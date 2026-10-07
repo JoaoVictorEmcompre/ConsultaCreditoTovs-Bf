@@ -1,7 +1,7 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import "./TicketsZammad.css";
-import { LuTicket as Ticket, LuChevronDown as ChevronDown, LuMessageSquare as MessageSquare, LuLock as Lock } from "react-icons/lu";
-import { getZammadTicketArticles } from "../../services/zammad.js";
+import { LuTicket as Ticket, LuChevronDown as ChevronDown, LuMessageSquare as MessageSquare, LuLock as Lock, LuPaperclip as Paperclip, LuDownload as Download, LuX as X, LuFileText as FileText, LuImage as ImageIcon } from "react-icons/lu";
+import { getZammadTicketArticles, getZammadAttachmentUrl } from "../../services/zammad.js";
 import EmptyState from "../common/EmptyState.jsx";
 import SectionCollapseButton from "../common/SectionCollapseButton.jsx";
 
@@ -64,8 +64,78 @@ function DetalheCampo({ label, valor }) {
     );
 }
 
-function ArtigoTicket({ artigo }) {
+function formatTamanho(bytes) {
+    const n = Number(bytes);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const EXT_IMAGEM = /\.(png|jpe?g|gif|webp)$/i;
+const EXT_PDF = /\.pdf$/i;
+
+// Só imagem e PDF têm prévia (o proxy também só serve esses tipos inline).
+function tipoPreview(anexo) {
+    const mime = String(anexo.preferences?.["Content-Type"] || "").toLowerCase();
+    const nome = anexo.filename || "";
+    if (mime === "application/pdf" || EXT_PDF.test(nome)) return "pdf";
+    if (/^image\/(png|jpe?g|gif|webp)$/.test(mime) || EXT_IMAGEM.test(nome)) return "imagem";
+    return null;
+}
+
+function PreviewAnexo({ anexo, tipo, urlPreview, urlDownload, onFechar }) {
+    useEffect(() => {
+        const aoTeclar = (e) => e.key === "Escape" && onFechar();
+        document.addEventListener("keydown", aoTeclar);
+        return () => document.removeEventListener("keydown", aoTeclar);
+    }, [onFechar]);
+
+    return (
+        <div className="zammad-preview-overlay" onClick={onFechar}>
+            <div
+                className="zammad-preview-modal"
+                role="dialog"
+                aria-label={`Prévia de ${anexo.filename}`}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="zammad-preview-header">
+                    <span className="zammad-preview-icone">
+                        {tipo === "pdf" ? <FileText size={20} /> : <ImageIcon size={20} />}
+                    </span>
+                    <div className="zammad-preview-info">
+                        <span className="zammad-preview-titulo" title={anexo.filename}>{anexo.filename}</span>
+                        <span className="zammad-preview-meta">
+                            {[tipo === "pdf" ? "PDF" : "Imagem", formatTamanho(anexo.size)].filter(Boolean).join(" · ")}
+                        </span>
+                    </div>
+                    <a className="zammad-preview-baixar" href={urlDownload} download={anexo.filename}>
+                        <Download size={16} /> Baixar arquivo
+                    </a>
+                    <button type="button" className="zammad-preview-fechar" onClick={onFechar} aria-label="Fechar prévia">
+                        <X size={16} />
+                    </button>
+                </div>
+                <div className="zammad-preview-corpo">
+                    {tipo === "pdf" ? (
+                        <iframe title={anexo.filename} src={urlPreview} className="zammad-preview-pdf" />
+                    ) : (
+                        <img src={urlPreview} alt={anexo.filename} className="zammad-preview-imagem" />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ArtigoTicket({ artigo, ticketId, cpfCnpj }) {
     const texto = htmlParaTexto(artigo.body);
+    const anexos = Array.isArray(artigo.attachments) ? artigo.attachments : [];
+    const [anexoAberto, setAnexoAberto] = useState(null);
+
+    const urlDe = (anexo, inline) =>
+        getZammadAttachmentUrl(ticketId, artigo.id, anexo.id, cpfCnpj, { inline });
+    const tipoAberto = anexoAberto ? tipoPreview(anexoAberto) : null;
 
     return (
         <div className={`zammad-artigo ${artigo.internal ? "zammad-artigo-interno" : ""}`}>
@@ -79,6 +149,51 @@ function ArtigoTicket({ artigo }) {
                 )}
             </div>
             {texto && <p className="zammad-artigo-corpo">{texto}</p>}
+            {anexos.length > 0 && (
+                <div className="zammad-anexos">
+                    {anexos.map((anexo) => {
+                        const conteudo = (
+                            <>
+                                <Paperclip size={12} />
+                                <span className="zammad-anexo-nome">{anexo.filename || `anexo-${anexo.id}`}</span>
+                                {formatTamanho(anexo.size) && (
+                                    <span className="zammad-anexo-tamanho">{formatTamanho(anexo.size)}</span>
+                                )}
+                            </>
+                        );
+
+                        // Com prévia: abre o modal. Sem prévia: baixa direto.
+                        return tipoPreview(anexo) ? (
+                            <button
+                                key={anexo.id}
+                                type="button"
+                                className="zammad-anexo"
+                                onClick={() => setAnexoAberto(anexo)}
+                            >
+                                {conteudo}
+                            </button>
+                        ) : (
+                            <a
+                                key={anexo.id}
+                                className="zammad-anexo"
+                                href={urlDe(anexo, false)}
+                                download={anexo.filename}
+                            >
+                                {conteudo}
+                            </a>
+                        );
+                    })}
+                </div>
+            )}
+            {anexoAberto && (
+                <PreviewAnexo
+                    anexo={anexoAberto}
+                    tipo={tipoAberto}
+                    urlPreview={urlDe(anexoAberto, true)}
+                    urlDownload={urlDe(anexoAberto, false)}
+                    onFechar={() => setAnexoAberto(null)}
+                />
+            )}
         </div>
     );
 }
@@ -173,7 +288,12 @@ function TicketRow({ ticket }) {
                                 {!carregando && artigos?.length > 0 && (
                                     <div className="zammad-artigos-lista">
                                         {artigos.map((artigo) => (
-                                            <ArtigoTicket key={artigo.id} artigo={artigo} />
+                                            <ArtigoTicket
+                                                key={artigo.id}
+                                                artigo={artigo}
+                                                ticketId={ticket.id}
+                                                cpfCnpj={ticket.customer}
+                                            />
                                         ))}
                                     </div>
                                 )}

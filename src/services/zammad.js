@@ -31,6 +31,15 @@ export const searchZammadTicketsByCustomerCpfCnpj = async (cpfCnpj) => {
     }
 };
 
+// URL de um anexo (download, ou prévia com inline: true). O proxy revalida
+// ticket/CPF e que o anexo pertence à mensagem informada.
+export const getZammadAttachmentUrl = (ticketId, articleId, attachmentId, cpfCnpj, { inline = false } = {}) =>
+    `${ZAMMAD_PROXY_BASE}/ticket-attachment?ticketId=${encodeURIComponent(ticketId)}` +
+    `&articleId=${encodeURIComponent(articleId)}` +
+    `&attachmentId=${encodeURIComponent(attachmentId)}` +
+    `&cpf=${encodeURIComponent(cpfCnpj)}${inline ? "&inline=1" : ""}`;
+
+
 // O proxy revalida que o ticket pertence a esse CPF/CNPJ antes de devolver a
 // conversa — por isso os dois têm que vir juntos aqui.
 export const getZammadTicketArticles = async (ticketId, cpfCnpj) => {
